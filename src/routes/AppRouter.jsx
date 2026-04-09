@@ -22,6 +22,12 @@ import OpnamePublic from "@/pages/OpnamePublic";
 import OpnameEdit from "@/pages/OpnameEdit";
 import AgentUpdates from "@/pages/AgentUpdates";
 import UpdateTimeout from "@/pages/UpdateTimeout";
+import AssetList from "@/pages/AssetList";
+import AssetDetail from "@/pages/AssetDetail";
+import AssetCreate from "@/pages/AssetCreate";
+import MasterCategory from "@/pages/MasterCategory";
+import MasterLocation from "@/pages/MasterLocation";
+import Scripts from "@/pages/Scripts";
 
 export default function AppRouter() {
   const { user } = useAuth();
@@ -77,6 +83,22 @@ export default function AppRouter() {
         }
       />
       <Route
+        path="/master-data/category"
+        element={
+          <PrivateRoute>
+            <MasterCategory />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/master-data/location"
+        element={
+          <PrivateRoute>
+            <MasterLocation />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/agent-updates"
         element={
           <PrivateRoute>
@@ -117,12 +139,46 @@ export default function AppRouter() {
         }
       />
 
+      {/* Asset Management routes */}
+      <Route
+        path="/assets"
+        element={
+          <PrivateRoute>
+            <AssetList />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/assets/create"
+        element={
+          <PrivateRoute>
+            <AssetCreate />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/assets/:id"
+        element={
+          <PrivateRoute>
+            <AssetDetail />
+          </PrivateRoute>
+        }
+      />
+
       {/* Role-based routes */}
       <Route
         path="/logs"
         element={
           <PrivateRoute roles={["admin", "superadmin"]}>
             <LogHistory />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/scripts"
+        element={
+          <PrivateRoute roles={["admin", "superadmin"]}>
+            <Scripts />
           </PrivateRoute>
         }
       />
@@ -136,16 +192,15 @@ export default function AppRouter() {
           }
         />
       )}
-      {user?.role === "superadmin" && (
-        <Route
-          path="/users"
-          element={
-            <PrivateRoute>
-              <UserList />
-            </PrivateRoute>
-          }
-        />
-      )}
+      <Route
+        path="/users"
+        element={
+          <PrivateRoute roles={["superadmin"]}>
+            <UserList />
+          </PrivateRoute>
+        }
+      />
+
 
       {/* Forbidden page */}
       <Route path="/forbidden" element={<Forbidden />} />

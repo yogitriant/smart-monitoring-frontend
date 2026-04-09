@@ -3,14 +3,21 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
-import { BrowserRouter } from "react-router-dom"; // ⬅️ Tambah ini
+import { SidebarProvider } from "./context/SidebarContext";
+import { BrowserRouter } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter> {/* ⬅️ Bungkus dengan Router */}
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <SidebarProvider>
+            <App />
+          </SidebarProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );
+

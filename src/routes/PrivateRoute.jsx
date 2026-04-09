@@ -1,15 +1,21 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
-export default function PrivateRoute({ children }) {
-  const { user } = useAuth();
+export default function PrivateRoute({ children, roles }) {
+  const { user, loading } = useAuth();
   const location = useLocation();
 
+  if (loading) {
+    return null; // atau tampilkan spinner jika mau
+  }
+
   if (!user) {
-    // ⛔ Belum login: redirect ke /login, simpan lokasi terakhir
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // ✅ Sudah login: izinkan akses
+  if (roles && !roles.includes(user.role)) {
+    return <Navigate to="/forbidden" replace />;
+  }
+
   return children;
 }

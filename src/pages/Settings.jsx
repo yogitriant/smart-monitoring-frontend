@@ -1,184 +1,130 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
-import { Input } from "@/components/ui/input";
+
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 
 export default function Settings() {
-  const { user, logout } = useAuth();
-  const [defaultTimeout, setDefaultTimeout] = useState(60);
-  const [uptimeInterval, setUptimeInterval] = useState(5); // default 5 menit
-  const [categoryTimeouts, setCategoryTimeouts] = useState([]);
-  const [newCategory, setNewCategory] = useState("");
-  const [newTimeout, setNewTimeout] = useState("");
-  const [availableCategories, setAvailableCategories] = useState([]);
+  const { user } = useAuth();
+  
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwdError, setPwdError] = useState("");
+  const [pwdSuccess, setPwdSuccess] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const settingRes = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/api/settings`
-        );
-        if (settingRes.data) {
-          setDefaultTimeout(settingRes.data.defaultTimeout || 0);
-          setCategoryTimeouts(settingRes.data.categoryTimeouts || []);
-          setUptimeInterval((settingRes.data.uptimeInterval || 300) / 60);
-        }
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-        const catRes = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/api/location/categories`
-        );
-        console.log(catRes.data);
-        setAvailableCategories(catRes.data);
-      } catch (err) {
-        console.error("❌ Gagal fetch data:", err);
-      }
-    };
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwdError("");
+    setPwdSuccess("");
 
-    fetchData();
-  }, []);
+    if (newPassword !== confirmPassword) {
+      setPwdError("Password baru tidak cocok.");
+      return;
+    }
 
-  const handleAddCategory = () => {
-    if (!newCategory || !newTimeout) return;
-    if (categoryTimeouts.some((ct) => ct.category === newCategory)) return;
-
-    setCategoryTimeouts([
-      ...categoryTimeouts,
-      { category: newCategory, timeout: parseInt(newTimeout) },
-    ]);
-    setNewCategory("");
-    setNewTimeout("");
-  };
-
-  const handleDeleteCategory = (idx) => {
-    const updated = [...categoryTimeouts];
-    updated.splice(idx, 1);
-    setCategoryTimeouts(updated);
-  };
-
-  const handleSave = async () => {
     try {
-      const payload = {
-        defaultTimeout: parseInt(defaultTimeout),
-        categoryTimeouts: categoryTimeouts
-          .map((item) => ({
-            category: item.category,
-            timeout: parseInt(item.timeout),
-          }))
-          .filter((item) => !isNaN(item.timeout)), // Hapus yang timeout-nya bukan angka
-      };
-
-      await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/settings`,
-        payload
+      const token = localStorage.getItem("token");
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/change-password`,
+        { oldPassword, newPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      alert("✅ Pengaturan berhasil disimpan");
+      setPwdSuccess(res.data.message);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowOldPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
     } catch (err) {
-      console.error("❌ Gagal simpan settings:", err);
-      alert("❌ Gagal menyimpan pengaturan");
+      setPwdError(err.response?.data?.message || "Gagal mengubah password.");
     }
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1 bg-zinc-100 p-6 overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6">⚙️ Settings</h2>
+      <div className="flex-1 bg-slate-50 overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-200/60 px-8 py-5">
+          <h2 className="text-xl font-bold text-zinc-800">Settings</h2>
+          <p className="text-sm text-zinc-400 mt-0.5">Application configuration</p>
+        </div>
+        <div className="p-8 space-y-6">
 
         {/* Info user */}
-        <div className="bg-white p-4 rounded shadow space-y-4 mb-6">
+        <div className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm p-5 space-y-4">
           <div>
-            <p className="text-sm text-zinc-500">Username</p>
-            <p className="font-medium">{user?.username}</p>
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Username</p>
+            <p className="text-sm font-medium text-zinc-700 mt-1">{user?.username}</p>
           </div>
           <div>
-            <p className="text-sm text-zinc-500">Role</p>
-            <p className="font-medium capitalize">{user?.role}</p>
+            <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Role</p>
+            <p className="text-sm font-medium text-zinc-700 mt-1 capitalize">{user?.role}</p>
           </div>
         </div>
 
-        {/* Timeout settings */}
-        <div className="bg-white p-4 rounded shadow space-y-4 mb-6">
-          <h3 className="text-lg font-semibold">🕒 Idle Timeout</h3>
-
-          <label className="block text-sm mb-1">Default Timeout (menit)</label>
-          <Input
-            type="number"
-            min={1}
-            value={defaultTimeout}
-            onChange={(e) => setDefaultTimeout(e.target.value)}
-          />
-
-          <div className="mt-4 space-y-2">
-            <h4 className="text-sm font-semibold">Kategori Lokasi</h4>
-
-            {categoryTimeouts.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center border p-2 rounded"
-              >
-                <div>
-                  <span className="font-medium">{item.category}</span>{" "}
-                  <span className="text-sm text-gray-500">
-                    ({item.timeout} menit)
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteCategory(idx)}
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </Button>
+        {/* Change Password */}
+        <div className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm p-5 space-y-4">
+          <h3 className="text-lg font-semibold">🔑 Ubah Password</h3>
+          {pwdError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-200">{pwdError}</div>}
+          {pwdSuccess && <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-sm border border-emerald-200">{pwdSuccess}</div>}
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-sm">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Password Lama</label>
+              <div className="relative">
+                <input
+                  type={showOldPassword ? "text" : "password"}
+                  required
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 pr-10"
+                />
+                <button type="button" onClick={() => setShowOldPassword(!showOldPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors">
+                  {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-            ))}
-
-            {/* Tambah kategori */}
-            <div className="flex gap-2 mt-3">
-              <select
-                className="border px-3 py-2 rounded w-48"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-              >
-                <option value="">Pilih kategori</option>
-                {availableCategories.map((cat, idx) => (
-                  <option key={idx} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-
-              <Input
-                placeholder="Timeout (mnt)"
-                type="number"
-                min={1}
-                value={newTimeout}
-                onChange={(e) => setNewTimeout(e.target.value)}
-              />
-              <Button onClick={handleAddCategory}>Tambah</Button>
             </div>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Password Baru (Kombinasi huruf besar, kecil, angka, spesial min 8)</label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 pr-10"
+                />
+                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors">
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Konfirmasi Password Baru</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-zinc-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 pr-10"
+                />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors">
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <Button type="submit" variant="default" className="w-full">Ubah Password</Button>
+          </form>
         </div>
-        {/* <div className="bg-white p-4 rounded shadow space-y-4 mb-6">
-          <h3 className="text-lg font-semibold">⏱️ Uptime Interval</h3>
 
-          <label className="block text-sm mb-1">
-            Interval Kirim Uptime (menit)
-          </label>
-          <Input
-            type="number"
-            min={1}
-            value={uptimeInterval}
-            onChange={(e) => setUptimeInterval(e.target.value)}
-          />
-        </div> */}
-
-        <div className="flex justify-between">
-          <Button onClick={handleSave}>💾 Simpan</Button>
-          {/* <Button variant="destructive" onClick={logout}>⏻ Logout</Button> */}
         </div>
       </div>
     </div>

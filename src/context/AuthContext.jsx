@@ -8,7 +8,8 @@ export const AuthProvider = ({ children }) => {
   const location = useLocation();
 
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ⬅️ baru ditambah
+  const [loading, setLoading] = useState(true);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   useEffect(() => {
     try {
@@ -18,25 +19,36 @@ export const AuthProvider = ({ children }) => {
     } catch {
       setUser(null);
     } finally {
-      setLoading(false); // ⬅️ loading selesai
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+
     if (
       !loading &&
-      !user &&
+      !justLoggedIn &&
+      (!user || !token) &&
       location.pathname !== "/login" &&
       location.pathname !== "/register"
     ) {
       navigate("/login", { replace: true });
     }
-  }, [user, loading, location.pathname, navigate]);
+  }, [user, loading, location.pathname, navigate, justLoggedIn]);
+
+  useEffect(() => {
+    if (justLoggedIn) {
+      const timer = setTimeout(() => setJustLoggedIn(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [justLoggedIn]);
 
   const login = (userData, token) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+    setJustLoggedIn(true);
   };
 
   const logout = () => {
@@ -46,27 +58,18 @@ export const AuthProvider = ({ children }) => {
     navigate("/login", { replace: true });
   };
 
-  // ⏳ Tampilkan splash saat masih loading user
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        {/* Logo Institusi (opsional) */}
-        <img
-          src="/logo.svg" // ⬅️ Ganti dengan logo institusi kamu
-          alt="Smart Monitoring"
-          className="w-16 h-16 mb-4 animate-pulse"
-        />
-
-        {/* Spinner */}
+        <img src="/logo.svg" alt="Smart Monitoring" className="w-16 h-16 mb-4 animate-pulse" />
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-
         <p className="mt-3 text-sm text-zinc-600">Memuat aplikasi...</p>
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

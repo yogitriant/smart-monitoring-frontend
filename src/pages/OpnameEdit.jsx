@@ -106,7 +106,7 @@ export default function OpnameEdit() {
                         <td className="p-2">{pc.serialNumber}</td>
                         <td className="p-2">{pc.assetNumber}</td>
                         <td className="p-2">
-                          {pc.location?.campus || "-"} -{" "}
+                          {pc.site || "-"} -{" "}
                           {pc.location?.room || "-"}
                         </td>
                         <td className="p-2">{pc.pic || "-"}</td>

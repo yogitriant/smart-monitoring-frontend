@@ -7,27 +7,27 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { io } from "socket.io-client";
 import dayjs from "dayjs";
+import { Combobox } from "@/components/ui/combobox";
 
 let socket;
 
 export default function ComputerDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+
   const [pc, setPc] = useState(null);
   const [locations, setLocations] = useState([]);
   const [categories, setCategories] = useState([]);
   const [specHistory, setSpecHistory] = useState([]);
   const [installedApps, setInstalledApps] = useState([]);
+  const [appSearch, setAppSearch] = useState("");
   const [editMode, setEditMode] = useState(false);
+
   const [form, setForm] = useState({
-    email: "",
-    assetNumber: "",
-    pic: "",
-    location: "",
-    category: "",
+    // PC fields
     isAdmin: false,
-    lifecycleStatus: "",
   });
+
   const [uptimeToday, setUptimeToday] = useState(0);
   const [uptimeSession, setUptimeSession] = useState(0);
   const [uptimeLifetime, setUptimeLifetime] = useState(0);
@@ -35,7 +35,6 @@ export default function ComputerDetail() {
   const formatDuration = (seconds) => {
     const total = Number(seconds);
     if (isNaN(total) || total <= 0) return "00:00:00";
-
     const hrs = Math.floor(total / 3600);
     const mins = Math.floor((total % 3600) / 60);
     const secs = Math.floor(total % 60);
@@ -46,8 +45,6 @@ export default function ComputerDetail() {
 
   useEffect(() => {
     socket = io(import.meta.env.VITE_API_BASE_URL);
-
-    // Join room berdasarkan pcId
     socket.on("connect", () => {
       console.log("🧾 Join-room dengan pcId:", id);
       // socket.emit("join-room", id);
@@ -56,14 +53,10 @@ export default function ComputerDetail() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const role = user.role || "";
+        const me = JSON.parse(localStorage.getItem("user") || "{}");
+        const role = me.role || "";
+        const headers = { Authorization: `Bearer ${token}` };
 
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
-
-        // Ambil data utama paralel
         const [pcRes, locRes, catRes] = await Promise.all([
           axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/pc/${id}`, {
             headers,
@@ -77,20 +70,16 @@ export default function ComputerDetail() {
           ),
         ]);
 
-        setPc(pcRes.data);
+        const data = pcRes.data;
+        setPc(data);
         setLocations(locRes.data);
         setCategories(catRes.data);
+
         setForm({
-          email: pcRes.data.email || "",
-          assetNumber: pcRes.data.assetNumber || "",
-          pic: pcRes.data.pic || "",
-          location: pcRes.data.location?._id || "",
-          category: pcRes.data.location?.category || "",
-          isAdmin: pcRes.data.isAdmin || false,
-          lifecycleStatus: pcRes.data.lifecycleStatus || "",
+          // PC fields
+          isAdmin: data.isAdmin || false,
         });
 
-        // Ambil uptime
         const today = dayjs().format("YYYY-MM-DD");
         const [uptimeTodayRes, uptimeLifetimeRes] = await Promise.all([
           axios.get(
@@ -108,13 +97,23 @@ export default function ComputerDetail() {
         setUptimeSession(Number(uptimeTodayRes.data?.uptimeSession || 0));
         setUptimeLifetime(Number(uptimeLifetimeRes.data?.uptimeLifetime || 0));
 
-        // Jika admin
         if (role === "admin" || role === "superadmin") {
           const historyRes = await axios.get(
             `${import.meta.env.VITE_API_BASE_URL}/api/spec-history`,
             { headers }
           );
           setSpecHistory(historyRes.data.filter((item) => item.pc?._id === id));
+        }
+
+        // Fetch installed apps
+        try {
+          const appsRes = await axios.get(
+            `${import.meta.env.VITE_API_BASE_URL}/api/installed-apps/by-id/${id}`,
+            { headers }
+          );
+          setInstalledApps(appsRes.data?.apps || []);
+        } catch {
+          // No installed apps data yet
         }
       } catch (err) {
         console.error("❌ Gagal fetch detail:", err.message);
@@ -143,20 +142,36 @@ export default function ComputerDetail() {
 
   const handleSave = async () => {
     try {
-      const res = await axios.put(
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const payload = {
+        isAdmin: form.isAdmin === true || form.isAdmin === "true",
+      };
+
+      console.log("🔼 Payload:", payload);
+
+      await axios.put(
         `${import.meta.env.VITE_API_BASE_URL}/api/pc/${id}`,
-        form
+        payload,
+        { headers }
       );
+
       alert("✅ Data berhasil diperbarui!");
       setEditMode(false);
 
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
       const pcDetailRes = await axios.get(
         `${import.meta.env.VITE_API_BASE_URL}/api/pc/${id}`,
         { headers }
       );
       setPc(pcDetailRes.data);
+      // sinkronkan form sesudah save
+      const d = pcDetailRes.data;
+      setForm({
+        location: d.location?._id || "",
+        category: d.location?.category || "",
+        isAdmin: d.isAdmin || false,
+      });
     } catch (err) {
       console.error("❌ Gagal update:", err.message);
       alert("Gagal update");
@@ -166,7 +181,6 @@ export default function ComputerDetail() {
   const handleDelete = async () => {
     const confirmDelete = confirm("Yakin ingin menghapus PC ini?");
     if (!confirmDelete) return;
-
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/pc/${id}`, {
@@ -183,90 +197,47 @@ export default function ComputerDetail() {
   if (!pc) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1 bg-zinc-100 p-6 overflow-y-auto">
-        {/* Header: Title + Status */}
-        <div className="flex items-center  mb-1">
-          <h2 className="text-2xl font-bold">
-            🖥️ Detail PC - {pc.pcId || pc.serialNumber}
-          </h2>
-          {pc.status === "online" && (
-            <span className="text-green-600 text-sm font-medium bg-green-100 px-2 py-1 rounded">
-              🟢 Aktif
-            </span>
-          )}
-          {pc.status === "idle" && (
-            <span className="text-yellow-600 text-sm font-medium bg-yellow-100 px-2 py-1 rounded">
-              🟡 Idle
-            </span>
-          )}
-          {pc.status === "offline" && (
-            <span className="text-red-600 text-sm font-medium bg-red-100 px-2 py-1 rounded">
-              🔴 Offline
-            </span>
-          )}
+      <div className="flex-1 bg-slate-50 overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-200/60 px-8 py-5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-zinc-800">
+              Detail PC — {pc.pcId || pc.serialNumber}
+            </h2>
+            {pc.status === "online" && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Active</span>}
+            {pc.status === "idle" && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />Idle</span>}
+            {pc.status === "offline" && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border bg-red-50 text-red-700 border-red-200"><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Offline</span>}
+          </div>
+          <p className="text-sm text-zinc-400 mt-0.5">Last active: {pc.lastActive ? new Date(pc.lastActive).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "Belum pernah aktif"}</p>
         </div>
 
-        {/* Last Active */}
-        <p className="text-sm text-zinc-500 mb-4">
-          Last active:{" "}
-          {pc.lastActive
-            ? new Date(pc.lastActive).toLocaleString("id-ID", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })
-            : "Belum pernah aktif"}
-        </p>
+        <div className="p-8">
 
-        {/* 🧾 Info PC */}
+
+
+        {/* Info PC + PIC */}
         <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800">
-          {/* PIC */}
-          <div>
-            <label className="block text-sm font-medium mb-1">PIC</label>
-            {editMode ? (
-              <Input name="pic" value={form.pic} onChange={handleChange} />
-            ) : (
-              <div className="text-sm">{form.pic || "-"}</div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            {editMode ? (
-              <Input
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                type="email"
-              />
-            ) : (
-              <div className="text-sm">{form.email || "-"}</div>
-            )}
-          </div>
-
-          {/* Serial Number */}
+          {/* Serial Number & User Login (read-only) */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Serial Number
             </label>
             <div className="text-sm">{pc.serialNumber || "-"}</div>
           </div>
-
-          {/* Asset Number */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Asset Number
+              User Login
             </label>
-            {editMode ? (
-              <Input
-                name="assetNumber"
-                value={form.assetNumber}
-                onChange={handleChange}
-              />
-            ) : (
-              <div className="text-sm">{form.assetNumber || "-"}</div>
-            )}
+            <div className="text-sm">{pc.userLogin || "-"}</div>
+          </div>
+
+          {/* Computer Name */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Computer Name
+            </label>
+            <div className="text-sm">{pc.spec?.hostname || "-"}</div>
           </div>
 
           {/* Kategori */}
@@ -274,108 +245,37 @@ export default function ComputerDetail() {
             <label className="block text-sm font-medium mb-1">
               Kategori Ruang
             </label>
-            {editMode ? (
-              <select
-                name="category"
-                value={form.category}
-                onChange={handleCategoryChange}
-                className="w-full border rounded px-2 py-1"
-              >
-                <option value="">-- Pilih Kategori --</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-sm">{pc.location?.category || "-"}</div>
-            )}
+            <div className="text-sm">{pc.location?.category || "-"}</div>
           </div>
 
           {/* Lokasi */}
           <div>
             <label className="block text-sm font-medium mb-1">Lokasi</label>
-            {editMode ? (
-              <select
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-                className="w-full border rounded px-2 py-1"
-              >
-                <option value="">-- Pilih Lokasi --</option>
-                {locations.map((loc) => (
-                  <option key={loc._id} value={loc._id}>
-                    {loc.campus} - {loc.room} ({loc.category})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-sm">
-                {pc.location
-                  ? `${pc.location.campus} - ${pc.location.room} (${pc.location.category})`
-                  : "-"}
-              </div>
-            )}
+            <div className="text-sm">
+              {pc.site
+                ? `${pc.site} - ${pc.location?.room || ""} (${pc.location?.category || ""})`
+                : "-"}
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-1">Edit via Asset Management</div>
           </div>
 
-          {/* Status Admin */}
+          {/* Admin */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Status Admin
             </label>
-            {editMode ? (
-              <select
-                name="isAdmin"
-                value={form.isAdmin ? "true" : "false"}
-                onChange={(e) =>
-                  setForm({ ...form, isAdmin: e.target.value === "true" })
-                }
-                className="w-full border rounded px-2 py-1"
-              >
-                <option value="false">Bukan Admin</option>
-                <option value="true">Admin</option>
-              </select>
-            ) : (
-              <div className="text-sm">
-                {pc.isAdmin ? "✅ Admin" : "❌ Bukan Admin"}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Lifecycle Status
-              </label>
-              {editMode ? (
-                <select
-                  name="lifecycleStatus"
-                  value={form.lifecycleStatus}
-                  onChange={handleChange}
-                  className="w-full border rounded px-2 py-1"
-                >
-                  <option value="">-- Pilih Status --</option>
-                  <option value="in_use">In Use</option>
-                  <option value="in_store">In Store</option>
-                  <option value="under_repair">Under Repair</option>
-                  <option value="disposal">Disposal</option>
-                </select>
-              ) : (
-                <div className="text-sm capitalize">
-                  {form.lifecycleStatus.replace("_", " ") || "-"}
-                </div>
-              )}
+            <div className="text-sm">
+               {pc.isAdmin ? "✅ Admin" : "❌ Bukan Admin"}
             </div>
           </div>
 
-          {/* Brand */}
+
+
+          {/* Brand / Model */}
           <div>
             <label className="block text-sm font-medium mb-1">Brand</label>
             <div className="text-sm">{pc.spec?.brand || "-"}</div>
           </div>
-
-          {/* Model */}
           <div>
             <label className="block text-sm font-medium mb-1">Model</label>
             <div className="text-sm">{pc.spec?.model || "-"}</div>
@@ -383,103 +283,10 @@ export default function ComputerDetail() {
         </div>
 
         <div className="flex gap-2 mt-2">
-          {editMode ? (
-            <>
-              <Button onClick={handleSave}>💾 Simpan</Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setEditMode(false);
-                  // 🔁 Reset form ke nilai asli dari pc
-                  setForm({
-                    email: pc.email || "",
-                    assetNumber: pc.assetNumber || "",
-                    pic: pc.pic || "",
-                    location: pc.location?._id || "",
-                    category: pc.location?.category || "",
-                    isAdmin: pc.isAdmin || false,
-                    lifecycleStatus: pc.lifecycleStatus || "", // tambahkan jika pakai ini
-                  });
-                }}
-              >
-                Batal
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button onClick={() => setEditMode(true)}>✏️ Edit</Button>
-              {(user?.role === "admin" || user?.role === "superadmin") && (
-                <Button
-                  variant="destructive"
-                  className="ml-2"
-                  onClick={handleDelete}
-                >
-                  🗑️ Hapus
-                </Button>
-              )}
-            </>
-          )}
+           {/* Edit and Delete buttons removed to enforce management through AssetDetail */}
         </div>
 
-        {/* 💡 Kontrol Power */}
-        {/* <h3 className="text-lg font-semibold mt-10">🔌 Power Control</h3>
-        <div className="flex gap-3 mt-2">
-          <Button
-            variant="destructive"
-            onClick={async () => {
-              try {
-                await axios.post(
-                  `${import.meta.env.VITE_API_BASE_URL}/api/power/shutdown`,
-                  {
-                    pcId: pc._id,
-                  }
-                );
-                alert("🔌 Shutdown command sent");
-              } catch (err) {
-                alert("❌ Gagal kirim perintah shutdown");
-              }
-            }}
-          >
-            🛑 Shutdown
-          </Button>
-          <Button
-            variant="default"
-            onClick={async () => {
-              try {
-                await axios.post(
-                  `${import.meta.env.VITE_API_BASE_URL}/api/power/restart`,
-                  {
-                    pcId: pc._id,
-                  }
-                );
-                alert("🔁 Restart command sent");
-              } catch (err) {
-                alert("❌ Gagal kirim perintah restart");
-              }
-            }}
-          >
-            🔁 Restart
-          </Button>
-          <Button
-            onClick={async () => {
-              try {
-                await axios.post(
-                  `${import.meta.env.VITE_API_BASE_URL}/api/power/wakeup`,
-                  {
-                    macAddress: pc.spec?.macAddress,
-                  }
-                );
-                alert("💡 Wake-up command sent");
-              } catch (err) {
-                alert("❌ Gagal kirim perintah wake-up");
-              }
-            }}
-          >
-            🌙 Wake Up
-          </Button>
-        </div> */}
-
-        {/* 🛠️ Spec */}
+        {/* Spec */}
         <h3 className="text-lg font-semibold mt-10">🛠️ Spesifikasi</h3>
         <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
           <div>OS: {pc.spec?.os || "-"}</div>
@@ -487,7 +294,6 @@ export default function ComputerDetail() {
           <div>IP Address: {pc.spec?.ipAddress || "-"}</div>
           <div>MAC Address: {pc.spec?.macAddress || "-"}</div>
           <div>GPU: {pc.spec?.gpu || "-"}</div>
-          {/* <div>Resolution: {pc.spec?.resolution || "-"}</div> */}
           <div>RAM: {pc.spec?.ram || "-"}</div>
         </div>
 
@@ -504,45 +310,114 @@ export default function ComputerDetail() {
           </div>
         )}
 
-        {/* 📈 Performance */}
+        {/* Performance */}
         <h3 className="text-lg font-semibold mt-10">
           📈 Performance (Terbaru)
         </h3>
         <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
           <div>CPU Usage: {pc.performance?.cpuUsage ?? "-"}%</div>
           <div>RAM Usage: {pc.performance?.ramUsage ?? "-"}%</div>
-          <div>Idle Time: {formatDuration(pc.performance?.idleTime || 0)}</div>
+          <div>
+            Idle Time (raw): {formatDuration(pc.performance?.idleRaw || 0)}
+          </div>
+          <div>
+            Idle Time (after threshold):{" "}
+            {formatDuration(pc.performance?.idleTime || 0)}
+          </div>
+
           <div>Total Uptime (semua hari): {formatDuration(uptimeLifetime)}</div>
           <div>Uptime Hari Ini: {formatDuration(uptimeToday)}</div>
           <div>Uptime Sesi Aktif: {formatDuration(uptimeSession)}</div>
+
+          {/* 🔋 Battery */}
+          {pc.performance?.battery ? (
+            <div className="flex flex-col">
+              <span className="text-gray-500 font-medium whitespace-nowrap">Battery Status</span>
+              <span className="text-zinc-800">
+                {pc.performance.battery.percent}% 
+                ({pc.performance.battery.isCharging ? '🔌 Charging' : '🔋 Discharging'}) 
+                {pc.performance.battery.health ? ` — Health: ${pc.performance.battery.health}%` : ''}
+              </span>
+            </div>
+          ) : (
+             <div className="flex flex-col">
+               <span className="text-gray-500 font-medium">Battery Status</span>
+               <span className="text-zinc-400 italic">Bukan Laptop / No Data</span>
+             </div>
+          )}
+
+          {/* 💽 Disk Health */}
+          {pc.performance?.diskHealth && pc.performance.diskHealth.length > 0 && (
+            <div className="flex flex-col col-span-2 mt-2">
+              <span className="text-gray-500 font-medium mb-1">Disk S.M.A.R.T Status</span>
+              <div className="flex gap-2 flex-wrap">
+                {pc.performance.diskHealth.map((disk, idx) => (
+                  <span key={idx} className={`px-2 py-1 rounded-md text-xs font-semibold border ${
+                    disk.smartStatus?.toLowerCase() === 'ok' 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}>
+                    {disk.name} ({disk.type}): {disk.smartStatus}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {pc.performance?.diskUsage?.length > 0 && (
-          <div className="mt-2 text-sm text-zinc-700">
-            <strong>Disk Usage:</strong>
-            <ul className="list-disc ml-6 mt-1">
-              {pc.performance.diskUsage.map((d, i) => {
-                const percentage =
-                  d.total > 0 ? ((d.used / d.total) * 100).toFixed(2) : "-";
-
-                const percentNum = parseFloat(percentage);
-                let colorClass = "text-green-600"; // default aman
-
-                if (percentNum > 85) colorClass = "text-red-600";
-                else if (percentNum > 60) colorClass = "text-yellow-600";
-
-                return (
-                  <li key={i}>
-                    Drive {d.drive} {d.used} / {d.total} GB{" "}
-                    <span className={colorClass}>({percentage}%)</span>
-                  </li>
-                );
-              })}
-            </ul>
+        {/* Installed Apps */}
+        <h3 className="text-lg font-semibold mt-10">
+          📦 Aplikasi Terinstall
+          {installedApps.length > 0 && (
+            <span className="text-sm font-normal text-zinc-400 ml-2">({installedApps.length} apps)</span>
+          )}
+        </h3>
+        {installedApps.length === 0 ? (
+          <p className="text-sm text-zinc-500">Belum ada data aplikasi.</p>
+        ) : (
+          <div className="mt-2">
+            <input
+              type="text"
+              placeholder="Cari aplikasi..."
+              value={appSearch}
+              onChange={(e) => setAppSearch(e.target.value)}
+              className="w-full max-w-sm px-3 py-1.5 mb-3 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            />
+            <div className="max-h-[400px] overflow-y-auto border border-zinc-200 rounded-xl">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 sticky top-0">
+                  <tr className="text-left text-xs text-zinc-500 uppercase">
+                    <th className="px-4 py-2 w-8">#</th>
+                    <th className="px-4 py-2">Nama Aplikasi</th>
+                    <th className="px-4 py-2">Versi</th>
+                    <th className="px-4 py-2">Publisher</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {installedApps
+                    .filter((app) => {
+                      if (!appSearch) return true;
+                      const q = appSearch.toLowerCase();
+                      return (
+                        (app.DisplayName || "").toLowerCase().includes(q) ||
+                        (app.Publisher || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map((app, i) => (
+                      <tr key={i} className="hover:bg-zinc-50">
+                        <td className="px-4 py-1.5 text-zinc-400">{i + 1}</td>
+                        <td className="px-4 py-1.5 font-medium text-zinc-700">{app.DisplayName}</td>
+                        <td className="px-4 py-1.5 text-zinc-500">{app.DisplayVersion || "-"}</td>
+                        <td className="px-4 py-1.5 text-zinc-500">{app.Publisher || "-"}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* 🕓 Spec History */}
+        {/* Spec History */}
         <h3 className="text-lg font-semibold mt-10">
           🕓 Riwayat Perubahan Spesifikasi
         </h3>
@@ -618,6 +493,7 @@ export default function ComputerDetail() {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
