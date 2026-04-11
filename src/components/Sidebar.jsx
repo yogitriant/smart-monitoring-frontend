@@ -25,7 +25,7 @@ export default function Sidebar() {
     { label: "Analytics", path: "/analytics", icon: BarChart3, roles: ["admin", "superadmin"] },
     { label: "Update Timeout", path: "/update-timeout", icon: Timer, roles: ["admin", "superadmin"] },
     { label: "Agent Updates", path: "/agent-updates", icon: RefreshCw, roles: ["admin", "superadmin"] },
-    { label: "Scripts", path: "/scripts", icon: TerminalSquare, roles: ["admin", "superadmin"] },
+    { label: "Scripts", path: "/scripts", icon: TerminalSquare, roles: ["superadmin"] },
     { label: "Assets", path: "/assets", icon: Package },
     { label: "Settings", path: "/settings", icon: Settings },
   ];

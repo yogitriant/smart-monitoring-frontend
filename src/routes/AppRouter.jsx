@@ -177,7 +177,7 @@ export default function AppRouter() {
       <Route
         path="/scripts"
         element={
-          <PrivateRoute roles={["admin", "superadmin"]}>
+          <PrivateRoute roles={["superadmin"]}>
             <Scripts />
           </PrivateRoute>
         }
