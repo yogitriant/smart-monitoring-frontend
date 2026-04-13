@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Monitor, BarChart3, Timer, RefreshCw,
   FolderOpen, History, FileText, FilePlus, ScrollText,
   ClipboardList, Users, LogOut, ChevronDown, ChevronRight, X, Menu,
-  Package, Database, Wrench, MapPin, Settings, TerminalSquare,
+  Package, Database, Wrench, MapPin, Settings, TerminalSquare, Globe,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -23,6 +23,7 @@ export default function Sidebar() {
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Computers", path: "/computers", icon: Monitor },
     { label: "Analytics", path: "/analytics", icon: BarChart3, roles: ["admin", "superadmin"] },
+    { label: "Geo Map", path: "/geo-map", icon: Globe, roles: ["admin", "superadmin"] },
     { label: "Update Timeout", path: "/update-timeout", icon: Timer, roles: ["admin", "superadmin"] },
     { label: "Agent Updates", path: "/agent-updates", icon: RefreshCw, roles: ["admin", "superadmin"] },
     { label: "Scripts", path: "/scripts", icon: TerminalSquare, roles: ["superadmin"] },

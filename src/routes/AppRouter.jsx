@@ -28,6 +28,7 @@ import AssetCreate from "@/pages/AssetCreate";
 import MasterCategory from "@/pages/MasterCategory";
 import MasterLocation from "@/pages/MasterLocation";
 import Scripts from "@/pages/Scripts";
+import GeoMap from "@/pages/GeoMap";
 
 export default function AppRouter() {
   const { user } = useAuth();
@@ -71,6 +72,14 @@ export default function AppRouter() {
         element={
           <PrivateRoute>
             <Analytics />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/geo-map"
+        element={
+          <PrivateRoute roles={["admin", "superadmin"]}>
+            <GeoMap />
           </PrivateRoute>
         }
       />
