@@ -317,6 +317,25 @@ export default function ComputerDetail() {
         <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
           <div>CPU Usage: {pc.performance?.cpuUsage ?? "-"}%</div>
           <div>RAM Usage: {pc.performance?.ramUsage ?? "-"}%</div>
+          
+          {pc.performance?.diskUsage && pc.performance.diskUsage.length > 0 && (
+            <div className="col-span-2">
+              <span className="text-gray-500 font-medium">Disk Usage:</span>
+              <div className="flex gap-4 mt-1 flex-wrap">
+                {pc.performance.diskUsage.map((disk, idx) => {
+                  const percent = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
+                  return (
+                    <div key={idx} className="flex item-center gap-1.5 bg-zinc-100/70 border border-zinc-200 px-3 py-1.5 rounded-lg text-xs">
+                      <span className="font-semibold text-zinc-700">Drive {disk.drive}</span>
+                      <span className="text-zinc-500">{disk.used} GB / {disk.total} GB</span>
+                      <span className={`font-medium ${percent > 85 ? 'text-red-600' : 'text-emerald-600'}`}>({percent}%)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             Idle Time (raw): {formatDuration(pc.performance?.idleRaw || 0)}
           </div>
