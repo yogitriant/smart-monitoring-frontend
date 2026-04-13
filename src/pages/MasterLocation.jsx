@@ -5,7 +5,7 @@ import { Plus, Edit2, Trash2, X, Search, MapPin, Globe } from "lucide-react";
 
 const REGION_SITE_TABS = [
     { id: "region", label: "Region" },
-    { id: "siteGroup", label: "Site Group" },
+    { id: "siteGroup", label: "Site Group", hasParent: "region" },
     { id: "site", label: "Site", hasParent: "siteGroup" },
     { id: "division", label: "Division" },
     { id: "department", label: "Department" },

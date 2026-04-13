@@ -6,7 +6,7 @@ import { Plus, Edit2, Trash2, X, Search, Wrench, ChevronRight } from "lucide-rea
 const CATEGORY_TABS = [
     { id: "productCategory", label: "Product Category" },
     { id: "subCategory", label: "Sub Category", hasParent: "productCategory" },
-    { id: "productName", label: "Product Name" },
+    { id: "productName", label: "Product Name", hasParent: "subCategory" },
     { id: "manufacturer", label: "Manufacturer" },
     { id: "supplierName", label: "Supplier" },
 ];
