@@ -41,7 +41,7 @@ export default function OpnameList() {
   };
 
   const handleDownloadDetail = (report) => {
-    const ws = XLSX.utils.json_to_sheet(report.items.map((i) => ({ "PC ID": i.pcId, Serial: i.serialNumber, Asset: i.assetNumber, Lokasi: i.location, Status: i.status || "-", Kondisi: i.kondisi || "-", Keterangan: i.keterangan || "-", Teknisi: i.updatedBy || "-" })));
+    const ws = XLSX.utils.json_to_sheet(report.items.map((i) => ({ "PC ID": i.pcId, Serial: i.serialNumber, Asset: i.assetNumber, Lokasi: i.location?.replace(/^(?:\s*-\s*)+/, '') || "-", Status: i.status || "-", Kondisi: i.kondisi || "-", Keterangan: i.keterangan || "-", Teknisi: i.updatedBy || "-" })));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, report.reportName);
     saveAs(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })], { type: "application/octet-stream" }), `opname-${report.reportName}-${Date.now()}.xlsx`);
   };

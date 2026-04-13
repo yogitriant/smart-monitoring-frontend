@@ -165,7 +165,7 @@ export default function OpnamePublic() {
               <td className="p-2">{item.pcId}</td>
               <td className="p-2">{item.serialNumber}</td>
               <td className="p-2">{item.assetNumber}</td>
-              <td className="p-2">{item.location}</td>
+              <td className="p-2">{item.location?.replace(/^(?:\s*-\s*)+/, '') || "-"}</td>
               <td className="p-2">
                 <select
                   value={item.status || ""}

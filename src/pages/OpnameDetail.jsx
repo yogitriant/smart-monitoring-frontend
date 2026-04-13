@@ -181,7 +181,7 @@ export default function OpnameDetail() {
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{item.pcId}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{item.serialNumber}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{item.assetNumber}</td>
-                        <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{item.location || "-"}</td>
+                        <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{item.location?.replace(/^(?:\s*-\s*)+/, '') || "-"}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600">{item.ram || "-"}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-500 truncate" title={item.storage || "-"}>{item.storage || "-"}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600">{item.status || "-"}</td>
