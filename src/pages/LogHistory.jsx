@@ -91,41 +91,46 @@ export default function LogHistory() {
               const isEdit = log._type === "edit";
               const changedFields = [];
               if (isEdit) {
-                if (log.oldData?.serialNumber !== log.newData?.serialNumber) changedFields.push("serialNumber");
-                if (log.oldData?.assetNumber !== log.newData?.assetNumber) changedFields.push("assetNumber");
-                if (log.oldData?.location !== log.newData?.location) changedFields.push("location");
-                if (log.oldData?.isAdmin !== log.newData?.isAdmin) changedFields.push("isAdmin");
-                if (log.oldData?.lifecycleStatus !== log.newData?.lifecycleStatus) changedFields.push("lifecycleStatus");
+                const keysToCheck = [
+                  "serialNumber", "assetNumber", "location", "isAdmin", "lifecycleStatus",
+                  "productCategory", "subCategory", "productName", "manufacturer", "supplierName",
+                  "site", "region", "division", "department", "lokasiRoom", "ownerSite", "faNumber", "brand", "model"
+                ];
+                
+                keysToCheck.forEach(key => {
+                  if (log.oldData?.[key] !== log.newData?.[key]) changedFields.push(key);
+                });
+                
                 ["name", "email", "department", "phone"].forEach((k) => {
                   if (getPicVal(log.oldData?.pic, k) !== getPicVal(log.newData?.pic, k)) changedFields.push(`pic.${k}`);
                 });
+                
                 if (changedFields.length === 0) return null;
               }
 
               return (
-                <div key={log._id} className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm overflow-hidden">
+                <div key={log._id || Math.random()} className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm overflow-hidden">
                   <div className={`flex items-center gap-3 px-5 py-3 border-b ${isEdit ? "border-amber-100 bg-amber-50/50" : "border-red-100 bg-red-50/50"}`}>
                     {isEdit ? <Pencil className="w-4 h-4 text-amber-500" /> : <Trash className="w-4 h-4 text-red-500" />}
                     <span className="text-sm font-medium text-zinc-700">{isEdit ? "Edit" : "Delete"} — <span className="text-primary-600">{log.adminName}</span></span>
                     <span className="ml-auto text-xs text-zinc-400 flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(log.timestamp || log.updatedAt).toLocaleString()}</span>
                   </div>
                   <div className="px-5 py-4">
-                    <div className="text-sm text-zinc-600 mb-2">PC: <span className="font-medium text-zinc-800">{log.pcId || log.oldData?.serialNumber || "-"}</span></div>
+                    <div className="text-sm text-zinc-600 mb-2">Target: <span className="font-medium text-zinc-800">{log.pcId || log.oldData?.serialNumber || "-"}</span></div>
                     {isEdit && changedFields.length > 0 && (
                       <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-3 rounded-xl">
-                        {changedFields.includes("serialNumber") && renderField("Serial", log.oldData?.serialNumber, log.newData?.serialNumber)}
-                        {changedFields.includes("assetNumber") && renderField("Asset", log.oldData?.assetNumber, log.newData?.assetNumber)}
-                        {changedFields.includes("location") && renderField("Location", log.oldData?.location, log.newData?.location)}
-                        {changedFields.includes("isAdmin") && renderField("Admin", log.oldData?.isAdmin ? "Yes" : "No", log.newData?.isAdmin ? "Yes" : "No")}
-                        {changedFields.includes("lifecycleStatus") && renderField("Lifecycle", log.oldData?.lifecycleStatus, log.newData?.lifecycleStatus)}
-                        {changedFields.includes("pic.name") && renderField("Name", getPicVal(log.oldData?.pic, "name"), getPicVal(log.newData?.pic, "name"))}
-                        {changedFields.includes("pic.email") && renderField("Email", getPicVal(log.oldData?.pic, "email"), getPicVal(log.newData?.pic, "email"))}
-                        {changedFields.includes("pic.department") && renderField("Department", getPicVal(log.oldData?.pic, "department"), getPicVal(log.newData?.pic, "department"))}
-                        {changedFields.includes("pic.phone") && renderField("Phone", getPicVal(log.oldData?.pic, "phone"), getPicVal(log.newData?.pic, "phone"))}
+                        {changedFields.map(field => {
+                           if (field.startsWith("pic.")) {
+                             const picKey = field.split(".")[1];
+                             return <div key={field}>{renderField(`PIC ${picKey}`, getPicVal(log.oldData?.pic, picKey), getPicVal(log.newData?.pic, picKey))}</div>;
+                           }
+                           const label = field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                           return <div key={field}>{renderField(label, log.oldData?.[field], log.newData?.[field])}</div>;
+                        })}
                       </div>
                     )}
                     {!isEdit && (
-                      <div className="text-sm text-zinc-500">Data: {log.oldData?.serialNumber} · {log.oldData?.assetNumber || "-"}</div>
+                      <div className="text-sm text-zinc-500">Data Terhapus: {log.oldData?.serialNumber} · {log.oldData?.assetNumber || "-"}</div>
                     )}
                   </div>
                 </div>
