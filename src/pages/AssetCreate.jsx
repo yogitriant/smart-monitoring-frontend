@@ -6,6 +6,7 @@ import {
     ArrowLeft, Save, Plus, X,
     Package, MapPin, Calendar, User, Wrench, FileText,
 } from "lucide-react";
+import AutocompleteInput from "@/components/AutocompleteInput";
 
 const STATUS_OPTIONS = ["Deployed", "Reserve", "Received", "On Loan", "Down", "Inventory", "Disposed"];
 const STATUS_REASON_OPTIONS = ["-", "Hibah", "Lelang", "Obsolete"];
@@ -42,12 +43,8 @@ export default function AssetCreate() {
         fetchOptions();
     }, []);
 
-    const renderOptions = (type) => {
-        const opts = fieldOptions.filter(o => o.type === type);
-        return [
-            <option key="empty" value="">-</option>,
-            ...opts.map(o => <option key={o._id} value={o.value}>{o.value}</option>)
-        ];
+    const getOptionsList = (type) => {
+        return fieldOptions.filter(o => o.type === type).map(o => o.value);
     };
 
     // Dependent options: Sub Category filtered by selected Product Category
@@ -204,40 +201,50 @@ export default function AssetCreate() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className={labelClass}>Product Category</label>
-                                <select value={form.productCategory} onChange={(e) => handleChangeWithReset("productCategory", e.target.value)} className={inputClass}>
-                                    {renderOptions("productCategory")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.productCategory}
+                                    onChange={(v) => handleChangeWithReset("productCategory", v)}
+                                    options={getOptionsList("productCategory")}
+                                    placeholder="- Pilih Category -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Sub Category</label>
-                                <select
+                                <AutocompleteInput
                                     value={form.subCategory}
-                                    onChange={(e) => handleChange("subCategory", e.target.value)}
-                                    className={inputClass}
+                                    onChange={(v) => handleChange("subCategory", v)}
+                                    options={subCategoryOptions.map(o => o.value)}
                                     disabled={!form.productCategory}
-                                >
-                                    <option value="">-</option>
-                                    {subCategoryOptions.map(o => <option key={o._id} value={o.value}>{o.value}</option>)}
-                                </select>
+                                    placeholder={form.productCategory ? "- Pilih Sub Category -" : "-"}
+                                />
                                 {!form.productCategory && <p className="text-[10px] text-amber-500 mt-0.5">Pilih Product Category dulu</p>}
                             </div>
                             <div>
                                 <label className={labelClass}>Product Name</label>
-                                <select value={form.productName} onChange={(e) => handleChange("productName", e.target.value)} className={inputClass}>
-                                    {renderOptions("productName")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.productName}
+                                    onChange={(v) => handleChange("productName", v)}
+                                    options={getOptionsList("productName")}
+                                    placeholder="- Pilih Product -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Manufacturer</label>
-                                <select value={form.manufacturer} onChange={(e) => handleChange("manufacturer", e.target.value)} className={inputClass}>
-                                    {renderOptions("manufacturer")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.manufacturer}
+                                    onChange={(v) => handleChange("manufacturer", v)}
+                                    options={getOptionsList("manufacturer")}
+                                    placeholder="- Pilih Manufacturer -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Supplier Name</label>
-                                <select value={form.supplierName} onChange={(e) => handleChange("supplierName", e.target.value)} className={inputClass}>
-                                    {renderOptions("supplierName")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.supplierName}
+                                    onChange={(v) => handleChange("supplierName", v)}
+                                    options={getOptionsList("supplierName")}
+                                    placeholder="- Pilih Supplier -"
+                                />
                             </div>
                         </div>
                     </div>
@@ -250,46 +257,59 @@ export default function AssetCreate() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className={labelClass}>Region</label>
-                                <select value={form.region} onChange={(e) => handleChange("region", e.target.value)} className={inputClass}>
-                                    {renderOptions("region")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.region}
+                                    onChange={(v) => handleChange("region", v)}
+                                    options={getOptionsList("region")}
+                                    placeholder="- Pilih Region -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Site Group</label>
-                                <select value={form.siteGroup} onChange={(e) => handleChangeWithReset("siteGroup", e.target.value)} className={inputClass}>
-                                    {renderOptions("siteGroup")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.siteGroup}
+                                    onChange={(v) => handleChangeWithReset("siteGroup", v)}
+                                    options={getOptionsList("siteGroup")}
+                                    placeholder="- Pilih Site Group -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Site</label>
-                                <select
+                                <AutocompleteInput
                                     value={form.site}
-                                    onChange={(e) => handleChange("site", e.target.value)}
-                                    className={inputClass}
+                                    onChange={(v) => handleChange("site", v)}
+                                    options={siteOptions.map(o => o.value)}
                                     disabled={!form.siteGroup}
-                                >
-                                    <option value="">-</option>
-                                    {siteOptions.map(o => <option key={o._id} value={o.value}>{o.value}</option>)}
-                                </select>
+                                    placeholder={form.siteGroup ? "- Pilih Site -" : "-"}
+                                />
                                 {!form.siteGroup && <p className="text-[10px] text-amber-500 mt-0.5">Pilih Site Group dulu</p>}
                             </div>
                             <div>
                                 <label className={labelClass}>Division</label>
-                                <select value={form.division} onChange={(e) => handleChange("division", e.target.value)} className={inputClass}>
-                                    {renderOptions("division")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.division}
+                                    onChange={(v) => handleChange("division", v)}
+                                    options={getOptionsList("division")}
+                                    placeholder="- Pilih Division -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Department</label>
-                                <select value={form.department} onChange={(e) => handleChange("department", e.target.value)} className={inputClass}>
-                                    {renderOptions("department")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.department}
+                                    onChange={(v) => handleChange("department", v)}
+                                    options={getOptionsList("department")}
+                                    placeholder="- Pilih Department -"
+                                />
                             </div>
                             <div>
                                 <label className={labelClass}>Owner Site</label>
-                                <select value={form.ownerSite} onChange={(e) => handleChange("ownerSite", e.target.value)} className={inputClass}>
-                                    {renderOptions("ownerSite")}
-                                </select>
+                                <AutocompleteInput
+                                    value={form.ownerSite}
+                                    onChange={(v) => handleChange("ownerSite", v)}
+                                    options={getOptionsList("ownerSite")}
+                                    placeholder="- Pilih Owner Site -"
+                                />
                             </div>
                         </div>
                     </div>

@@ -107,9 +107,9 @@ export default function MasterLocation() {
 
     const handleSaveField = async () => {
         if (!fieldForm.value) return showToast("Value tidak boleh kosong", "error");
-        
+
         const values = fieldForm.value.split(",").map(v => v.trim()).filter(Boolean);
-        
+
         try {
             if (editField?._id) {
                 await axios.put(`/api/field-options/${editField._id}`, { ...fieldForm, value: values[0] });
