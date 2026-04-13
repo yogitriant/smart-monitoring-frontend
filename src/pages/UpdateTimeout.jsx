@@ -169,7 +169,7 @@ export default function UpdateTimeout() {
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.lastLoginUser || pc.userLogin || "-"}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.serialNumber}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.assetNumber || "-"}</td>
-                      <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.site} - {pc.location?.room || "-"}</td>
+                      <td className="px-5 py-3.5 text-sm text-zinc-600">{[pc.site, pc.location?.room].filter(Boolean).join(" - ") || "-"}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.location?.category || "-"}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.idleTimeout ?? "-"}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.performanceInterval ?? "-"}</td>
