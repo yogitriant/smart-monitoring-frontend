@@ -141,11 +141,9 @@ export default function Sidebar() {
             </button>
             {isHistoriOpen && (
               <div className="ml-4 pl-2.5 border-l-2 border-zinc-100 space-y-0.5 mt-0.5">
-                {user?.role === "superadmin" && (
-                  <Link to="/logs" className={linkClass("/logs")}>
-                    <ScrollText className={iconClass("/logs")} /> Log History
-                  </Link>
-                )}
+                <Link to="/logs" className={linkClass("/logs")}>
+                  <ScrollText className={iconClass("/logs")} /> Log History
+                </Link>
                 <Link to="/spec-history" className={`${linkClass("/spec-history")} relative`}>
                   <ClipboardList className={iconClass("/spec-history")} />
                   <span className="truncate">Spec Reviews</span>
