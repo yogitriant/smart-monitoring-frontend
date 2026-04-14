@@ -191,16 +191,14 @@ export default function AppRouter() {
           </PrivateRoute>
         }
       />
-      {(user?.role === "admin" || user?.role === "superadmin") && (
-        <Route
-          path="/spec-history"
-          element={
-            <PrivateRoute>
-              <SpecHistory />
-            </PrivateRoute>
-          }
-        />
-      )}
+      <Route
+        path="/spec-history"
+        element={
+          <PrivateRoute roles={["admin", "superadmin"]}>
+            <SpecHistory />
+          </PrivateRoute>
+        }
+      />
       <Route
         path="/users"
         element={

@@ -83,8 +83,7 @@ export default function ComputerDetail() {
         const today = dayjs().format("YYYY-MM-DD");
         const [uptimeTodayRes, uptimeLifetimeRes] = await Promise.all([
           axios.get(
-            `${
-              import.meta.env.VITE_API_BASE_URL
+            `${import.meta.env.VITE_API_BASE_URL
             }/api/uptime?pc=${id}&date=${today}`,
             { headers }
           ),
@@ -122,6 +121,18 @@ export default function ComputerDetail() {
 
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    let interval;
+    if (pc && pc.status !== "offline") {
+      interval = setInterval(() => {
+        setUptimeToday((prev) => prev + 1);
+        setUptimeSession((prev) => prev + 1);
+        setUptimeLifetime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [pc]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -216,302 +227,300 @@ export default function ComputerDetail() {
 
 
 
-        {/* Info PC + PIC */}
-        <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800">
-          {/* Serial Number & User Login (read-only) */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Serial Number
-            </label>
-            <div className="text-sm">{pc.serialNumber || "-"}</div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              User Login
-            </label>
-            <div className="text-sm">{pc.userLogin || "-"}</div>
-          </div>
-
-          {/* Computer Name */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Computer Name
-            </label>
-            <div className="text-sm">{pc.spec?.hostname || "-"}</div>
-          </div>
-
-          {/* Kategori */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Kategori Ruang
-            </label>
-            <div className="text-sm">{pc.location?.category || "-"}</div>
-          </div>
-
-          {/* Lokasi */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Lokasi</label>
-            <div className="text-sm">
-              {pc.site
-                ? `${pc.site} - ${pc.location?.room || ""} (${pc.location?.category || ""})`
-                : "-"}
+          {/* Info PC + PIC */}
+          <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800">
+            {/* Serial Number & User Login (read-only) */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Serial Number
+              </label>
+              <div className="text-sm">{pc.serialNumber || "-"}</div>
             </div>
-            <div className="text-[10px] text-zinc-400 mt-1">Edit via Asset Management</div>
-          </div>
-
-          {/* Admin */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Status Admin
-            </label>
-            <div className="text-sm">
-               {pc.isAdmin ? "✅ Admin" : "❌ Bukan Admin"}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                User Login
+              </label>
+              <div className="text-sm">{pc.userLogin || "-"}</div>
             </div>
-          </div>
 
+            {/* Computer Name */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Computer Name
+              </label>
+              <div className="text-sm">{pc.spec?.hostname || "-"}</div>
+            </div>
 
+            {/* Kategori */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Kategori Ruang
+              </label>
+              <div className="text-sm">{pc.location?.category || "-"}</div>
+            </div>
 
-          {/* Brand / Model */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Brand</label>
-            <div className="text-sm">{pc.spec?.brand || "-"}</div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Model</label>
-            <div className="text-sm">{pc.spec?.model || "-"}</div>
-          </div>
-        </div>
+            {/* Lokasi */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Lokasi</label>
+              <div className="text-sm">
+                {pc.site
+                  ? `${pc.site} - ${pc.location?.room || ""} (${pc.location?.category || ""})`
+                  : "-"}
+              </div>
+              <div className="text-[10px] text-zinc-400 mt-1">Edit via Asset Management</div>
+            </div>
 
-        <div className="flex gap-2 mt-2">
-           {/* Edit and Delete buttons removed to enforce management through AssetDetail */}
-        </div>
-
-        {/* Spec */}
-        <h3 className="text-lg font-semibold mt-10">🛠️ Spesifikasi</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
-          <div>OS: {pc.spec?.os || "-"}</div>
-          <div>CPU: {pc.spec?.cpu || "-"}</div>
-          <div>IP Address: {pc.spec?.ipAddress || "-"}</div>
-          <div>MAC Address: {pc.spec?.macAddress || "-"}</div>
-          <div>GPU: {pc.spec?.gpu || "-"}</div>
-          <div>RAM: {pc.spec?.ram || "-"}</div>
-        </div>
-
-        {pc.spec?.disk?.length > 0 && (
-          <div className="mt-2 text-sm text-zinc-700">
-            <strong>Disk:</strong>
-            <ul className="list-disc ml-6 mt-1">
-              {pc.spec.disk.map((d, i) => (
-                <li key={i}>
-                  Drive {d.drive}: {d.total} ({d.type})
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Performance */}
-        <h3 className="text-lg font-semibold mt-10">
-          📈 Performance (Terbaru)
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
-          <div>CPU Usage: {pc.performance?.cpuUsage ?? "-"}%</div>
-          <div>RAM Usage: {pc.performance?.ramUsage ?? "-"}%</div>
-          
-          {pc.performance?.diskUsage && pc.performance.diskUsage.length > 0 && (
-            <div className="col-span-2">
-              <span className="text-gray-500 font-medium">Disk Usage:</span>
-              <div className="flex gap-4 mt-1 flex-wrap">
-                {pc.performance.diskUsage.map((disk, idx) => {
-                  const percent = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
-                  return (
-                    <div key={idx} className="flex item-center gap-1.5 bg-zinc-100/70 border border-zinc-200 px-3 py-1.5 rounded-lg text-xs">
-                      <span className="font-semibold text-zinc-700">Drive {disk.drive}</span>
-                      <span className="text-zinc-500">{disk.used} GB / {disk.total} GB</span>
-                      <span className={`font-medium ${percent > 85 ? 'text-red-600' : 'text-emerald-600'}`}>({percent}%)</span>
-                    </div>
-                  );
-                })}
+            {/* Admin */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Status Admin
+              </label>
+              <div className="text-sm">
+                {pc.isAdmin ? "✅ Admin" : "❌ Bukan Admin"}
               </div>
             </div>
-          )}
 
-          <div>
-            Idle Time (raw): {formatDuration(pc.performance?.idleRaw || 0)}
-          </div>
-          <div>
-            Idle Time (after threshold):{" "}
-            {formatDuration(pc.performance?.idleTime || 0)}
-          </div>
 
-          <div>Total Uptime (semua hari): {formatDuration(uptimeLifetime)}</div>
-          <div>Uptime Hari Ini: {formatDuration(uptimeToday)}</div>
-          <div>Uptime Sesi Aktif: {formatDuration(uptimeSession)}</div>
 
-          {/* 🔋 Battery */}
-          {pc.performance?.battery ? (
-            <div className="flex flex-col">
-              <span className="text-gray-500 font-medium whitespace-nowrap">Battery Status</span>
-              <span className="text-zinc-800">
-                {pc.performance.battery.percent}% 
-                ({pc.performance.battery.isCharging ? '🔌 Charging' : '🔋 Discharging'}) 
-                {pc.performance.battery.health ? ` — Health: ${pc.performance.battery.health}%` : ''}
-              </span>
+            {/* Brand / Model */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Brand</label>
+              <div className="text-sm">{pc.spec?.brand || "-"}</div>
             </div>
-          ) : (
-             <div className="flex flex-col">
-               <span className="text-gray-500 font-medium">Battery Status</span>
-               <span className="text-zinc-400 italic">Bukan Laptop / No Data</span>
-             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium mb-1">Model</label>
+              <div className="text-sm">{pc.spec?.model || "-"}</div>
+            </div>
+          </div>
 
-          {/* 💽 Disk Health */}
-          {pc.performance?.diskHealth && pc.performance.diskHealth.length > 0 && (
-            <div className="flex flex-col col-span-2 mt-2">
-              <span className="text-gray-500 font-medium mb-1">Disk S.M.A.R.T Status</span>
-              <div className="flex gap-2 flex-wrap">
-                {pc.performance.diskHealth.map((disk, idx) => (
-                  <span key={idx} className={`px-2 py-1 rounded-md text-xs font-semibold border ${
-                    disk.smartStatus?.toLowerCase() === 'ok' 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                  }`}>
-                    {disk.name} ({disk.type}): {disk.smartStatus}
-                  </span>
+          <div className="flex gap-2 mt-2">
+            {/* Edit and Delete buttons removed to enforce management through AssetDetail */}
+          </div>
+
+          {/* Spec */}
+          <h3 className="text-lg font-semibold mt-10">🛠️ Spesifikasi</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
+            <div>OS: {pc.spec?.os || "-"}</div>
+            <div>CPU: {pc.spec?.cpu || "-"}</div>
+            <div>IP Address: {pc.spec?.ipAddress || "-"}</div>
+            <div>MAC Address: {pc.spec?.macAddress || "-"}</div>
+            <div>GPU: {pc.spec?.gpu || "-"}</div>
+            <div>RAM: {pc.spec?.ram || "-"}</div>
+          </div>
+
+          {pc.spec?.disk?.length > 0 && (
+            <div className="mt-2 text-sm text-zinc-700">
+              <strong>Disk:</strong>
+              <ul className="list-disc ml-6 mt-1">
+                {pc.spec.disk.map((d, i) => (
+                  <li key={i}>
+                    Drive {d.drive}: {d.total} ({d.type})
+                  </li>
                 ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Performance */}
+          <h3 className="text-lg font-semibold mt-10">
+            📈 Performance (Terbaru)
+          </h3>
+          <div className="grid grid-cols-2 gap-4 text-sm text-zinc-800 mt-2">
+            <div>CPU Usage: {pc.performance?.cpuUsage ?? "-"}%</div>
+            <div>RAM Usage: {pc.performance?.ramUsage ?? "-"}%</div>
+
+            {pc.performance?.diskUsage && pc.performance.diskUsage.length > 0 && (
+              <div className="col-span-2">
+                <span className="text-gray-500 font-medium">Disk Usage:</span>
+                <div className="flex gap-4 mt-1 flex-wrap">
+                  {pc.performance.diskUsage.map((disk, idx) => {
+                    const percent = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
+                    return (
+                      <div key={idx} className="flex item-center gap-1.5 bg-zinc-100/70 border border-zinc-200 px-3 py-1.5 rounded-lg text-xs">
+                        <span className="font-semibold text-zinc-700">Drive {disk.drive}</span>
+                        <span className="text-zinc-500">{disk.used} GB / {disk.total} GB</span>
+                        <span className={`font-medium ${percent > 85 ? 'text-red-600' : 'text-emerald-600'}`}>({percent}%)</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div>
+              Idle Time (raw): {formatDuration(pc.performance?.idleRaw || 0)}
+            </div>
+            <div>
+              Idle Time (after threshold):{" "}
+              {formatDuration(pc.performance?.idleTime || 0)}
+            </div>
+
+            <div>Total Uptime (semua hari): {formatDuration(uptimeLifetime)}</div>
+            <div>Uptime Hari Ini: {formatDuration(uptimeToday)}</div>
+            <div>Uptime Sesi Aktif: {formatDuration(uptimeSession)}</div>
+
+            {/* 🔋 Battery */}
+            {pc.performance?.battery ? (
+              <div className="flex flex-col">
+                <span className="text-gray-500 font-medium whitespace-nowrap">Battery Status</span>
+                <span className="text-zinc-800">
+                  {pc.performance.battery.percent}%
+                  ({pc.performance.battery.isCharging ? '🔌 Charging' : '🔋 Discharging'})
+                  {pc.performance.battery.health ? ` — Health: ${pc.performance.battery.health}%` : ''}
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                <span className="text-gray-500 font-medium">Battery Status</span>
+                <span className="text-zinc-400 italic">Bukan Laptop / No Data</span>
+              </div>
+            )}
+
+            {/* 💽 Disk Health */}
+            {pc.performance?.diskHealth && pc.performance.diskHealth.length > 0 && (
+              <div className="flex flex-col col-span-2 mt-2">
+                <span className="text-gray-500 font-medium mb-1">Disk S.M.A.R.T Status</span>
+                <div className="flex gap-2 flex-wrap">
+                  {pc.performance.diskHealth.map((disk, idx) => (
+                    <span key={idx} className={`px-2 py-1 rounded-md text-xs font-semibold border ${disk.smartStatus?.toLowerCase() === 'ok'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}>
+                      {disk.name} ({disk.type}): {disk.smartStatus}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Installed Apps */}
+          <h3 className="text-lg font-semibold mt-10">
+            📦 Aplikasi Terinstall
+            {installedApps.length > 0 && (
+              <span className="text-sm font-normal text-zinc-400 ml-2">({installedApps.length} apps)</span>
+            )}
+          </h3>
+          {installedApps.length === 0 ? (
+            <p className="text-sm text-zinc-500">Belum ada data aplikasi.</p>
+          ) : (
+            <div className="mt-2">
+              <input
+                type="text"
+                placeholder="Cari aplikasi..."
+                value={appSearch}
+                onChange={(e) => setAppSearch(e.target.value)}
+                className="w-full max-w-sm px-3 py-1.5 mb-3 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+              <div className="max-h-[400px] overflow-y-auto border border-zinc-200 rounded-xl">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 sticky top-0">
+                    <tr className="text-left text-xs text-zinc-500 uppercase">
+                      <th className="px-4 py-2 w-8">#</th>
+                      <th className="px-4 py-2">Nama Aplikasi</th>
+                      <th className="px-4 py-2">Versi</th>
+                      <th className="px-4 py-2">Publisher</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {installedApps
+                      .filter((app) => {
+                        if (!appSearch) return true;
+                        const q = appSearch.toLowerCase();
+                        return (
+                          (app.DisplayName || "").toLowerCase().includes(q) ||
+                          (app.Publisher || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .map((app, i) => (
+                        <tr key={i} className="hover:bg-zinc-50">
+                          <td className="px-4 py-1.5 text-zinc-400">{i + 1}</td>
+                          <td className="px-4 py-1.5 font-medium text-zinc-700">{app.DisplayName}</td>
+                          <td className="px-4 py-1.5 text-zinc-500">{app.DisplayVersion || "-"}</td>
+                          <td className="px-4 py-1.5 text-zinc-500">{app.Publisher || "-"}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Installed Apps */}
-        <h3 className="text-lg font-semibold mt-10">
-          📦 Aplikasi Terinstall
-          {installedApps.length > 0 && (
-            <span className="text-sm font-normal text-zinc-400 ml-2">({installedApps.length} apps)</span>
-          )}
-        </h3>
-        {installedApps.length === 0 ? (
-          <p className="text-sm text-zinc-500">Belum ada data aplikasi.</p>
-        ) : (
-          <div className="mt-2">
-            <input
-              type="text"
-              placeholder="Cari aplikasi..."
-              value={appSearch}
-              onChange={(e) => setAppSearch(e.target.value)}
-              className="w-full max-w-sm px-3 py-1.5 mb-3 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
-            <div className="max-h-[400px] overflow-y-auto border border-zinc-200 rounded-xl">
-              <table className="w-full text-sm">
-                <thead className="bg-zinc-50 sticky top-0">
-                  <tr className="text-left text-xs text-zinc-500 uppercase">
-                    <th className="px-4 py-2 w-8">#</th>
-                    <th className="px-4 py-2">Nama Aplikasi</th>
-                    <th className="px-4 py-2">Versi</th>
-                    <th className="px-4 py-2">Publisher</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {installedApps
-                    .filter((app) => {
-                      if (!appSearch) return true;
-                      const q = appSearch.toLowerCase();
-                      return (
-                        (app.DisplayName || "").toLowerCase().includes(q) ||
-                        (app.Publisher || "").toLowerCase().includes(q)
-                      );
-                    })
-                    .map((app, i) => (
-                      <tr key={i} className="hover:bg-zinc-50">
-                        <td className="px-4 py-1.5 text-zinc-400">{i + 1}</td>
-                        <td className="px-4 py-1.5 font-medium text-zinc-700">{app.DisplayName}</td>
-                        <td className="px-4 py-1.5 text-zinc-500">{app.DisplayVersion || "-"}</td>
-                        <td className="px-4 py-1.5 text-zinc-500">{app.Publisher || "-"}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Spec History */}
-        <h3 className="text-lg font-semibold mt-10">
-          🕓 Riwayat Perubahan Spesifikasi
-        </h3>
-        {specHistory.length === 0 ? (
-          <p className="text-sm text-zinc-500">Belum ada riwayat perubahan.</p>
-        ) : (
-          <div className="space-y-4 mt-2 text-sm text-zinc-800">
-            {specHistory.map((item) => (
-              <div
-                key={item._id}
-                className={`p-4 rounded border shadow ${
-                  item.approved
+          {/* Spec History */}
+          <h3 className="text-lg font-semibold mt-10">
+            🕓 Riwayat Perubahan Spesifikasi
+          </h3>
+          {specHistory.length === 0 ? (
+            <p className="text-sm text-zinc-500">Belum ada riwayat perubahan.</p>
+          ) : (
+            <div className="space-y-4 mt-2 text-sm text-zinc-800">
+              {specHistory.map((item) => (
+                <div
+                  key={item._id}
+                  className={`p-4 rounded border shadow ${item.approved
                     ? "bg-green-50 border-green-300"
                     : item.rejected
-                    ? "bg-red-50 border-red-300"
-                    : "bg-yellow-50 border-yellow-300"
-                }`}
-              >
-                <div className="font-medium mb-1 text-zinc-700">
-                  {new Date(item.createdAt).toLocaleString()} —{" "}
-                  {item.approved
-                    ? "✅ Disetujui"
-                    : item.rejected
-                    ? "❌ Ditolak"
-                    : "⏳ Menunggu Review"}
+                      ? "bg-red-50 border-red-300"
+                      : "bg-yellow-50 border-yellow-300"
+                    }`}
+                >
+                  <div className="font-medium mb-1 text-zinc-700">
+                    {new Date(item.createdAt).toLocaleString()} —{" "}
+                    {item.approved
+                      ? "✅ Disetujui"
+                      : item.rejected
+                        ? "❌ Ditolak"
+                        : "⏳ Menunggu Review"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.keys(item.newSpec)
+                      .filter(
+                        (key) =>
+                          JSON.stringify(item.oldSpec[key]) !==
+                          JSON.stringify(item.newSpec[key])
+                      )
+                      .map((key) => (
+                        <div key={key}>
+                          <strong>{key}</strong>:{" "}
+                          {key === "disk" ? (
+                            <ul className="ml-4 list-disc">
+                              {(item.newSpec.disk || []).map((d, idx) => {
+                                const oldDisk = (item.oldSpec.disk || []).find(
+                                  (od) => od.drive === d.drive
+                                );
+                                return (
+                                  <li key={idx}>
+                                    <span className="text-red-500 line-through">
+                                      {oldDisk
+                                        ? `${oldDisk.drive}: ${oldDisk.total} (${oldDisk.type})`
+                                        : "-"}
+                                    </span>{" "}
+                                    →{" "}
+                                    <span className="text-green-700 font-medium">
+                                      {`${d.drive}: ${d.total} (${d.type})`}
+                                    </span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : (
+                            <>
+                              <span className="text-red-500 line-through">
+                                {item.oldSpec[key] || "-"}
+                              </span>{" "}
+                              →{" "}
+                              <span className="text-green-700 font-medium">
+                                {item.newSpec[key]}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.keys(item.newSpec)
-                    .filter(
-                      (key) =>
-                        JSON.stringify(item.oldSpec[key]) !==
-                        JSON.stringify(item.newSpec[key])
-                    )
-                    .map((key) => (
-                      <div key={key}>
-                        <strong>{key}</strong>:{" "}
-                        {key === "disk" ? (
-                          <ul className="ml-4 list-disc">
-                            {(item.newSpec.disk || []).map((d, idx) => {
-                              const oldDisk = (item.oldSpec.disk || []).find(
-                                (od) => od.drive === d.drive
-                              );
-                              return (
-                                <li key={idx}>
-                                  <span className="text-red-500 line-through">
-                                    {oldDisk
-                                      ? `${oldDisk.drive}: ${oldDisk.total} (${oldDisk.type})`
-                                      : "-"}
-                                  </span>{" "}
-                                  →{" "}
-                                  <span className="text-green-700 font-medium">
-                                    {`${d.drive}: ${d.total} (${d.type})`}
-                                  </span>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        ) : (
-                          <>
-                            <span className="text-red-500 line-through">
-                              {item.oldSpec[key] || "-"}
-                            </span>{" "}
-                            →{" "}
-                            <span className="text-green-700 font-medium">
-                              {item.newSpec[key]}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
