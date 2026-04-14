@@ -92,9 +92,21 @@ export default function ComputerDetail() {
             { headers }
           ),
         ]);
-        setUptimeToday(Number(uptimeTodayRes.data?.uptimeTotalToday || 0));
-        setUptimeSession(Number(uptimeTodayRes.data?.uptimeSession || 0));
-        setUptimeLifetime(Number(uptimeLifetimeRes.data?.uptimeLifetime || 0));
+        const dateHeader = uptimeTodayRes.headers?.date;
+        const serverTime = dateHeader ? new Date(dateHeader).getTime() : Date.now();
+        const offset = Date.now() - serverTime;
+
+        let elapsed = 0;
+        const uptimeData = uptimeTodayRes.data || {};
+        if (data.status !== "offline" && uptimeData.updatedAt) {
+          const accurateClientNow = Date.now() - offset;
+          elapsed = Math.floor((accurateClientNow - new Date(uptimeData.updatedAt).getTime()) / 1000);
+          if (elapsed < 0 || elapsed > 300) elapsed = 0; // max 5 min lag to prevent crazy values
+        }
+
+        setUptimeToday(Number(uptimeData.uptimeTotalToday || 0) + elapsed);
+        setUptimeSession(Number(uptimeData.uptimeSession || 0) + elapsed);
+        setUptimeLifetime(Number(uptimeLifetimeRes.data?.uptimeLifetime || 0) + elapsed);
 
         if (role === "admin" || role === "superadmin") {
           const historyRes = await axios.get(
