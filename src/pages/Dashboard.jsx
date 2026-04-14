@@ -254,7 +254,7 @@ export default function Dashboard() {
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.serialNumber}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">{pc.userLogin || "-"}</td>
                       <td className="px-5 py-3.5 text-sm text-zinc-600">
-                        {pc.site || "Unknown"}, {pc.location?.room || "-"}
+                        {pc.site || pc.location?.campus || "Unknown"}, {pc.location?.room || "-"}
                       </td>
                       <td className="px-5 py-3.5">{statusBadge(pc.status)}</td>
                     </tr>

@@ -216,7 +216,7 @@ export default function Computers() {
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{pc.assetNumber || "-"}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{pc.userLogin || "-"}</td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">
-                          {pc.site ? `${pc.site}, ${pc.location?.room || ""}${pc.location?.category ? ` (${pc.location.category})` : ""}` : (pc.location?.room || "-")}
+                          {(pc.site || pc.location?.campus) ? `${pc.site || pc.location?.campus}, ${pc.location?.room || ""}${pc.location?.category ? ` (${pc.location.category})` : ""}` : (pc.location?.room || "-")}
                         </td>
                         <td className="px-3 py-2.5 text-sm text-zinc-600 truncate">{pc.spec?.os || "-"}</td>
                         <td className="px-3 py-2.5 text-[11px] text-zinc-500 truncate" title={formatSpec(pc)}>{formatSpec(pc)}</td>
