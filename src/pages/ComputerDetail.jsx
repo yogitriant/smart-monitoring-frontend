@@ -46,8 +46,19 @@ export default function ComputerDetail() {
   useEffect(() => {
     socket = io(import.meta.env.VITE_API_BASE_URL);
     socket.on("connect", () => {
-      console.log("🧾 Join-room dengan pcId:", id);
-      // socket.emit("join-room", id);
+      console.log("🧾 Join-dashboard dengan pcId:", id);
+      socket.emit("join-dashboard", id);
+    });
+
+    socket.on("uptime-update", (data) => {
+      if (data) {
+        setUptimeToday((prev) => {
+          const diff = data.uptimeTotalToday - prev;
+          if (diff > 0) setUptimeLifetime((l) => l + diff);
+          return data.uptimeTotalToday;
+        });
+        setUptimeSession(data.uptimeSession);
+      }
     });
 
     const fetchData = async () => {
@@ -92,21 +103,12 @@ export default function ComputerDetail() {
             { headers }
           ),
         ]);
-        const dateHeader = uptimeTodayRes.headers?.date;
-        const serverTime = dateHeader ? new Date(dateHeader).getTime() : Date.now();
-        const offset = Date.now() - serverTime;
-
-        let elapsed = 0;
+        
         const uptimeData = uptimeTodayRes.data || {};
-        if (data.status !== "offline" && uptimeData.updatedAt) {
-          const accurateClientNow = Date.now() - offset;
-          elapsed = Math.floor((accurateClientNow - new Date(uptimeData.updatedAt).getTime()) / 1000);
-          if (elapsed < 0 || elapsed > 300) elapsed = 0; // max 5 min lag to prevent crazy values
-        }
 
-        setUptimeToday(Number(uptimeData.uptimeTotalToday || 0) + elapsed);
-        setUptimeSession(Number(uptimeData.uptimeSession || 0) + elapsed);
-        setUptimeLifetime(Number(uptimeLifetimeRes.data?.uptimeLifetime || 0) + elapsed);
+        setUptimeToday(Number(uptimeData.uptimeTotalToday || 0));
+        setUptimeSession(Number(uptimeData.uptimeSession || 0));
+        setUptimeLifetime(Number(uptimeLifetimeRes.data?.uptimeLifetime || 0));
 
         if (role === "admin" || role === "superadmin") {
           const historyRes = await axios.get(
@@ -132,19 +134,11 @@ export default function ComputerDetail() {
     };
 
     fetchData();
-  }, [id]);
 
-  useEffect(() => {
-    let interval;
-    if (pc && pc.status !== "offline") {
-      interval = setInterval(() => {
-        setUptimeToday((prev) => prev + 1);
-        setUptimeSession((prev) => prev + 1);
-        setUptimeLifetime((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [pc]);
+    return () => {
+      socket.disconnect();
+    };
+  }, [id]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
