@@ -57,12 +57,38 @@ export default function AgentUpdateDashboard() {
 
   const pushAction = async (action) => {
     if (!selectedVersion || selectedPcs.size === 0 || !socket) return;
+    
+    const pcsList = Array.from(selectedPcs);
+    const textAction = action === "update" ? "Update" : "Rollback";
+    if (!window.confirm(`Yakin ingin melakukan ${textAction} ${pcsList.length} PC ke versi ${selectedVersion}?`)) {
+      return;
+    }
+
     try {
       const versionObj = versions.find((v) => v.version === selectedVersion);
       const versionHash = versionObj ? versionObj.hash : null;
-      await axios.post("/api/agent/push", { action, version: selectedVersion, pcIds: Array.from(selectedPcs) });
-      Array.from(selectedPcs).forEach((pcId) => socket.emit("agent-update", { pcId, version: selectedVersion, hash: versionHash, silent: true, force: false, action }));
-    } catch (err) { console.error("❌ Gagal push action:", err); }
+      
+      // 🔹 Inject optimistic log entries
+      const optimisticLogs = pcsList.map((pcId) => ({
+        _id: `temp-${Date.now()}-${pcId}`,
+        pcId,
+        version: selectedVersion,
+        action,
+        status: "processing",
+        message: `Memproses instruksi ${action}...`,
+        timestamp: new Date().toISOString()
+      }));
+      setLogs((prev) => [...optimisticLogs, ...prev].slice(0, 50));
+      
+      // Kosongkan seleksi setelah dipush
+      setSelectedPcs(new Set());
+
+      await axios.post("/api/agent/push", { action, version: selectedVersion, pcIds: pcsList });
+      pcsList.forEach((pcId) => socket.emit("agent-update", { pcId, version: selectedVersion, hash: versionHash, silent: true, force: false, action }));
+    } catch (err) { 
+      console.error("❌ Gagal push action:", err);
+      alert("Gagal melakukan aksi push!");
+    }
   };
 
   // Filtered PCs
@@ -230,7 +256,14 @@ export default function AgentUpdateDashboard() {
                   <td className={tdClass}>{safeText(log.version)}</td>
                   <td className={tdClass}>{safeText(log.action)}</td>
                   <td className="px-5 py-3.5">
-                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${log.status === "success" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : log.status === "error" ? "bg-red-50 text-red-700 border-red-200" : "bg-zinc-100 text-zinc-600 border-zinc-200"}`}>{safeText(log.status)}</span>
+                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${
+                      log.status === "success" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
+                      log.status === "processing" ? "bg-amber-50 text-amber-700 border-amber-200" : 
+                      log.status === "error" || log.status === "failed" ? "bg-red-50 text-red-700 border-red-200" : 
+                      "bg-zinc-100 text-zinc-600 border-zinc-200"
+                    }`}>
+                      {safeText(log.status)}
+                    </span>
                   </td>
                   <td className={`${tdClass} max-w-[200px] truncate`}>{safeText(log.message)}</td>
                 </tr>
