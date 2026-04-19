@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "@/lib/axios";
 import { io } from "socket.io-client";
 import UploadAgentZip from "./UploadAgentZip";
-import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Trash2, Send, Package, Clock, Monitor } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Trash2, Send, Package, Clock, Monitor, RefreshCw } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -24,7 +24,16 @@ export default function AgentUpdateDashboard() {
   const [logPage, setLogPage] = useState(1);
   const logLimit = 10;
 
+  // Pagination for versions
+  const [versionPage, setVersionPage] = useState(1);
+  const versionLimit = 5;
+
   const safeText = (v) => v == null ? "-" : typeof v === "object" ? "-" : String(v).trim() === "" ? "-" : String(v);
+
+  const getDisplayPcId = (mongoId) => {
+    const pc = pcs.find(p => p._id === mongoId);
+    return pc ? pc.pcId : mongoId;
+  };
 
   const allSelected = useMemo(() => pcs.length > 0 && selectedPcs.size === pcs.length, [pcs.length, selectedPcs]);
 
@@ -114,6 +123,10 @@ export default function AgentUpdateDashboard() {
     );
   }, [pcs, pcSearch]);
 
+  const versionTotalPages = Math.max(1, Math.ceil(versions.length / versionLimit));
+  const versionCurrentPage = Math.min(versionPage, versionTotalPages);
+  const versionPaginated = versions.slice((versionCurrentPage - 1) * versionLimit, versionCurrentPage * versionLimit);
+
   const pcTotalPages = Math.max(1, Math.ceil(filteredPcs.length / pcLimit));
   const pcCurrentPage = Math.min(pcPage, pcTotalPages);
   const pcPaginated = filteredPcs.slice((pcCurrentPage - 1) * pcLimit, pcCurrentPage * pcLimit);
@@ -133,9 +146,11 @@ export default function AgentUpdateDashboard() {
 
       {/* Versions Table */}
       <div className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
-          <Package className="w-4 h-4 text-primary-500" />
-          <h3 className="text-sm font-semibold text-zinc-700">Available Versions</h3>
+        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary-500" />
+            <h3 className="text-sm font-semibold text-zinc-700">Available Versions</h3>
+          </div>
         </div>
         <table className="w-full">
           <thead><tr className="border-b border-zinc-100">
@@ -145,9 +160,9 @@ export default function AgentUpdateDashboard() {
             <th className={`${thClass} text-center`}>Action</th>
           </tr></thead>
           <tbody>
-            {(versions || []).length === 0 ? (
+            {(versionPaginated || []).length === 0 ? (
               <tr><td colSpan={4} className="text-center py-8 text-sm text-zinc-400">Tidak ada versi tersimpan</td></tr>
-            ) : versions.map((v) => (
+            ) : versionPaginated.map((v) => (
               <tr key={v.version} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
                 <td className={`${tdClass} font-medium text-zinc-700`}>{safeText(v.version)}</td>
                 <td className={tdClass}>{v.uploadDate ? new Date(v.uploadDate).toLocaleString() : "-"}</td>
@@ -159,6 +174,16 @@ export default function AgentUpdateDashboard() {
             ))}
           </tbody>
         </table>
+        {versions.length > versionLimit && (
+          <div className="px-5 py-3 border-t border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+            <span className="text-sm text-zinc-400">Showing {Math.min((versionCurrentPage - 1) * versionLimit + 1, versions.length)}–{Math.min(versionCurrentPage * versionLimit, versions.length)} of {versions.length}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setVersionPage((p) => Math.max(1, p - 1))} disabled={versionCurrentPage === 1} className="p-2 rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"><ChevronLeft className="w-4 h-4" /></button>
+              <span className="text-sm text-zinc-600 font-medium px-3">{versionCurrentPage} / {versionTotalPages}</span>
+              <button onClick={() => setVersionPage((p) => Math.min(versionTotalPages, p + 1))} disabled={versionCurrentPage === versionTotalPages} className="p-2 rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Select Version + Push */}
@@ -244,9 +269,12 @@ export default function AgentUpdateDashboard() {
 
       {/* Logs Table */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-zinc-500" />
-          <h3 className="text-sm font-semibold text-zinc-700">Recent Logs</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-zinc-500" />
+            <h3 className="text-sm font-semibold text-zinc-700">Recent Logs</h3>
+          </div>
+          <button onClick={fetchAllData} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 focus:outline-none transition-colors" title="Refresh Logs"><RefreshCw className="w-4 h-4" /></button>
         </div>
         <div className="bg-white border border-zinc-200/60 rounded-2xl shadow-sm overflow-hidden">
           <table className="w-full">
@@ -264,7 +292,7 @@ export default function AgentUpdateDashboard() {
               ) : logPaginated.map((log) => (
                 <tr key={log._id || `${log.timestamp}-${log.pcId}`} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
                   <td className={`${tdClass} text-zinc-500`}>{log.timestamp ? new Date(log.timestamp).toLocaleString() : "-"}</td>
-                  <td className={`${tdClass} font-medium text-zinc-700`}>{safeText(log.pcId)}</td>
+                  <td className={`${tdClass} font-medium text-zinc-700`}>{safeText(getDisplayPcId(log.pcId))}</td>
                   <td className={tdClass}>{safeText(log.version)}</td>
                   <td className={tdClass}>{safeText(log.action)}</td>
                   <td className="px-5 py-3.5">
