@@ -60,8 +60,20 @@ export default function AgentUpdateDashboard() {
     
     const pcsList = Array.from(selectedPcs);
     const textAction = action === "update" ? "Update" : "Rollback";
-    if (!window.confirm(`Yakin ingin melakukan ${textAction} ${pcsList.length} PC ke versi ${selectedVersion}?`)) {
-      return;
+
+    // 🔹 Pengecekan apakah PC sudah di versi yang sama
+    const alreadyUpdatedPcs = pcsList
+      .map((id) => pcs.find((p) => p._id === id))
+      .filter((p) => p && (p.agentVersion === selectedVersion || p.version === selectedVersion));
+
+    if (alreadyUpdatedPcs.length > 0) {
+      if (!window.confirm(`⚠️ PERHATIAN!\nAda ${alreadyUpdatedPcs.length} PC yang sudah berada di versi ${selectedVersion}.\nAgen akan secara otomatis melewati (skip) update pada PC tersebut agar efisien.\n\nTetap lanjutkan ${textAction} untuk seluruh ${pcsList.length} PC yang Anda centang?`)) {
+        return;
+      }
+    } else {
+      if (!window.confirm(`Yakin ingin melakukan ${textAction} ${pcsList.length} PC ke versi ${selectedVersion}?`)) {
+        return;
+      }
     }
 
     try {
