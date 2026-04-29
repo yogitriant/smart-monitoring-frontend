@@ -5,6 +5,7 @@ import axios from "@/lib/axios";
 import {
     ArrowLeft, Save, Plus, X,
     Package, MapPin, Calendar, User, Wrench, FileText,
+    Paperclip, UploadCloud
 } from "lucide-react";
 import AutocompleteInput from "@/components/AutocompleteInput";
 
@@ -30,6 +31,7 @@ export default function AssetCreate() {
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
     const [fieldOptions, setFieldOptions] = useState([]);
+    const [filesToUpload, setFilesToUpload] = useState([]);
 
     useEffect(() => {
         const fetchOptions = async () => {
@@ -99,6 +101,33 @@ export default function AssetCreate() {
         }));
     };
 
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+        const validFiles = [];
+        
+        for (const file of files) {
+            if (!validTypes.includes(file.type)) {
+                showToast("Hanya file PDF, JPG, dan PNG yang diizinkan", "error");
+                continue;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                showToast("Ukuran file maksimal 5MB", "error");
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        setFilesToUpload(prev => [...prev, ...validFiles]);
+        e.target.value = null; // reset
+    };
+
+    const removeFile = (index) => {
+        setFilesToUpload(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSubmit = async () => {
         try {
             setSaving(true);
@@ -115,6 +144,21 @@ export default function AssetCreate() {
             payload.customSpecs = (payload.customSpecs || []).filter((s) => s.key && s.value);
 
             const res = await axios.post("/api/assets", payload);
+
+            // Jika ada file yang dipilih, upload file ke endpoint attachment
+            if (filesToUpload.length > 0) {
+                try {
+                    const formData = new FormData();
+                    filesToUpload.forEach(file => formData.append("files", file));
+                    await axios.post(`/api/assets/${res.data._id}/attachments`, formData);
+                } catch (uploadErr) {
+                    console.error("Gagal upload attachment:", uploadErr);
+                    showToast("Asset berhasil dibuat tapi gagal mengupload sebagian file.", "error");
+                    // Wait a bit before navigating so user can see the toast
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+
             navigate(`/assets/${res.data._id}`);
         } catch (err) {
             console.error("❌ Gagal buat asset:", err);
@@ -395,6 +439,66 @@ export default function AssetCreate() {
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Attachments */}
+                    <div className={sectionClass}>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-zinc-700 flex items-center gap-2">
+                                <Paperclip className="w-4 h-4 text-primary-500" /> Attachments
+                            </h3>
+                            <div>
+                                <input
+                                    type="file"
+                                    id="fileUpload"
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                />
+                                <label
+                                    htmlFor="fileUpload"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors cursor-pointer"
+                                >
+                                    <UploadCloud className="w-3.5 h-3.5" /> Select Documents
+                                </label>
+                            </div>
+                        </div>
+
+                        {filesToUpload.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                {filesToUpload.map((file, i) => (
+                                    <div key={i} className="flex items-center justify-between p-3 border border-zinc-200/80 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm border border-zinc-100">
+                                                <FileText className="w-4 h-4 text-primary-500" />
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <p className="text-sm font-medium text-zinc-700 truncate" title={file.name}>
+                                                    {file.name}
+                                                </p>
+                                                <p className="text-[10px] text-zinc-400">
+                                                    {(file.size / 1024).toFixed(1)} KB
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => removeFile(i)}
+                                            className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-2"
+                                            title="Remove File"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-zinc-200/80 rounded-xl bg-zinc-50/50">
+                                <Paperclip className="w-6 h-6 text-zinc-300 mb-2" />
+                                <p className="text-sm font-medium text-zinc-500">Pilih dokumen untuk diupload</p>
+                                <p className="text-xs text-zinc-400 mt-0.5">Upload file PDF, JPG, atau PNG (Max 5MB)</p>
                             </div>
                         )}
                     </div>

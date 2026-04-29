@@ -5,6 +5,7 @@ import axios from "@/lib/axios";
 import {
     ArrowLeft, Save, Trash2, Plus, X, Monitor, ExternalLink,
     Package, MapPin, Calendar, User, Wrench, FileText, History,
+    Paperclip, Download, UploadCloud, Loader2
 } from "lucide-react";
 import AutocompleteInput from "@/components/AutocompleteInput";
 
@@ -24,6 +25,7 @@ export default function AssetDetail() {
     const [specHistory, setSpecHistory] = useState([]);
     const [locations, setLocations] = useState([]);
     const [fieldOptions, setFieldOptions] = useState([]);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -41,6 +43,7 @@ export default function AssetDetail() {
                     disposalDate: res.data.disposalDate?.slice(0, 10) || "",
                     warrantyExpDate: res.data.warrantyExpDate?.slice(0, 10) || "",
                     customSpecs: res.data.customSpecs || [],
+                    attachments: res.data.attachments || [],
                 });
 
                 // Fetch locations + field options
@@ -173,6 +176,53 @@ export default function AssetDetail() {
             console.error("❌ Gagal hapus:", err);
             showToast("Gagal menghapus asset", "error");
             setDeleting(false);
+        }
+    };
+
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        // Basic frontend validation
+        const validTypes = ["application/pdf", "image/jpeg", "image/png"];
+        const invalidFile = files.find(f => !validTypes.includes(f.type));
+        if (invalidFile) {
+            return showToast("Hanya file PDF, JPG, dan PNG yang diizinkan", "error");
+        }
+
+        const largeFile = files.find(f => f.size > 5 * 1024 * 1024);
+        if (largeFile) {
+            return showToast("Ukuran file maksimal 5MB", "error");
+        }
+
+        try {
+            setUploading(true);
+            const formData = new FormData();
+            files.forEach(file => formData.append("files", file));
+
+            const res = await axios.post(`/api/assets/${id}/attachments`, formData);
+
+            setForm(prev => ({ ...prev, attachments: res.data }));
+            showToast("Dokumen berhasil diupload");
+        } catch (err) {
+            console.error("❌ Gagal upload:", err);
+            const errMsg = err.response?.data?.message || err.response?.statusText || err.message || "Gagal mengupload dokumen";
+            showToast(`Error: ${errMsg}`, "error");
+        } finally {
+            setUploading(false);
+            e.target.value = null; // reset input
+        }
+    };
+
+    const handleDeleteAttachment = async (attachmentId) => {
+        if (!window.confirm("Hapus dokumen ini?")) return;
+        try {
+            const res = await axios.delete(`/api/assets/${id}/attachments/${attachmentId}`);
+            setForm(prev => ({ ...prev, attachments: res.data.attachments }));
+            showToast("Dokumen dihapus");
+        } catch (err) {
+            console.error("❌ Gagal hapus attachment:", err);
+            showToast("Gagal menghapus dokumen", "error");
         }
     };
 
@@ -484,6 +534,83 @@ export default function AssetDetail() {
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Attachments */}
+                    <div className={sectionClass}>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-zinc-700 flex items-center gap-2">
+                                <Paperclip className="w-4 h-4 text-primary-500" /> Attachments
+                            </h3>
+                            <div>
+                                <input
+                                    type="file"
+                                    id="fileUpload"
+                                    multiple
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={handleFileUpload}
+                                    disabled={uploading}
+                                />
+                                <label
+                                    htmlFor="fileUpload"
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
+                                        uploading
+                                            ? "bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed"
+                                            : "text-primary-600 border-primary-200 hover:bg-primary-50"
+                                    }`}
+                                >
+                                    {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                                    Upload Document
+                                </label>
+                            </div>
+                        </div>
+
+                        {form.attachments?.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                                {form.attachments.map((file) => (
+                                    <div key={file._id} className="flex items-center justify-between p-3 border border-zinc-200/80 rounded-xl bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm border border-zinc-100">
+                                                <FileText className="w-4 h-4 text-primary-500" />
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <p className="text-sm font-medium text-zinc-700 truncate" title={file.originalName}>
+                                                    {file.originalName}
+                                                </p>
+                                                <p className="text-[10px] text-zinc-400">
+                                                    {(file.size / 1024).toFixed(1)} KB • {new Date(file.uploadedAt).toLocaleDateString("id-ID")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                                            <a
+                                                href={`${import.meta.env.VITE_API_BASE_URL || ""}${file.url}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-1.5 text-zinc-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                                title="Download/View"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                            </a>
+                                            <button
+                                                onClick={() => handleDeleteAttachment(file._id)}
+                                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Document"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed border-zinc-200/80 rounded-xl bg-zinc-50/50">
+                                <Paperclip className="w-6 h-6 text-zinc-300 mb-2" />
+                                <p className="text-sm font-medium text-zinc-500">Belum ada dokumen</p>
+                                <p className="text-xs text-zinc-400 mt-0.5">Upload file PDF, JPG, atau PNG (Max 5MB)</p>
                             </div>
                         )}
                     </div>
