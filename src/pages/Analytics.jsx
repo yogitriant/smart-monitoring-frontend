@@ -39,9 +39,13 @@ export default function Analytics() {
 
   const [loading, setLoading] = useState(true);
 
-  const fetchFilters = async () => {
+  const fetchFilters = async (currentFilters = filters) => {
     try {
-      const res = await axios.get(`/api/analytics/filters`);
+      const params = new URLSearchParams();
+      if (currentFilters.site) params.set("site", currentFilters.site);
+      if (currentFilters.department) params.set("department", currentFilters.department);
+      if (currentFilters.pic) params.set("pic", currentFilters.pic);
+      const res = await axios.get(`/api/analytics/filters?${params.toString()}`);
       setFilterOptions(res.data);
     } catch (err) {
       console.error("Gagal fetch filters:", err);
@@ -70,7 +74,24 @@ export default function Analytics() {
   }, [filters]);
 
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let updated = { ...filters, [name]: value };
+
+    // Cascading reset: saat level atas berubah, reset level bawahnya
+    if (name === "site") {
+      updated.department = "";
+      updated.pic = "";
+      updated.device = "";
+    } else if (name === "department") {
+      updated.pic = "";
+      updated.device = "";
+    } else if (name === "pic") {
+      updated.device = "";
+    }
+
+    setFilters(updated);
+    // Refetch opsi filter berdasarkan pilihan terbaru
+    fetchFilters(updated);
   };
 
   const perfData = [
