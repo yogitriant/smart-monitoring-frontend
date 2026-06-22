@@ -222,11 +222,11 @@ export default function ComputerDetail() {
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-200/60 px-8 py-5">
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => navigate(-1)} 
-              className="p-1.5 hover:bg-zinc-100 text-zinc-500 rounded-md transition-colors"
+              onClick={() => navigate("/computers")} 
+              className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition-colors"
               title="Kembali"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft className="w-4 h-4 text-zinc-600" />
             </button>
             <h2 className="text-xl font-bold text-zinc-800">
               Detail PC — {pc.pcId || pc.serialNumber}
