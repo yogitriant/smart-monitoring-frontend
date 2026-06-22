@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "@/lib/axios";
 import Sidebar from "@/components/Sidebar";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,13 @@ import { useAuth } from "@/context/AuthContext";
 import { io } from "socket.io-client";
 import dayjs from "dayjs";
 import { Combobox } from "@/components/ui/combobox";
+import { ArrowLeft } from "lucide-react";
 
 let socket;
 
 export default function ComputerDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [pc, setPc] = useState(null);
@@ -219,6 +221,13 @@ export default function ComputerDetail() {
       <div className="flex-1 bg-slate-50 overflow-y-auto">
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-200/60 px-8 py-5">
           <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate(-1)} 
+              className="p-1.5 hover:bg-zinc-100 text-zinc-500 rounded-md transition-colors"
+              title="Kembali"
+            >
+              <ArrowLeft size={20} />
+            </button>
             <h2 className="text-xl font-bold text-zinc-800">
               Detail PC — {pc.pcId || pc.serialNumber}
             </h2>

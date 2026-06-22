@@ -109,7 +109,7 @@ export default function OpnameEdit() {
                           {pc.site || "-"} -{" "}
                           {pc.location?.room || "-"}
                         </td>
-                        <td className="p-2">{pc.pic || "-"}</td>
+                        <td className="p-2">{pc.picName || "-"}</td>
                         <td className="p-2">{pc.spec?.ram || "-"}</td>
                         <td className="p-2">
                           {Array.isArray(pc.spec?.disk)
