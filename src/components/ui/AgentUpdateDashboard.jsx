@@ -42,7 +42,7 @@ export default function AgentUpdateDashboard() {
       setLoading(true);
       const [vRes, pcRes, logRes] = await Promise.all([
         axios.get("/api/agent/versions"),
-        axios.get("/api/pc"),
+        axios.get("/api/pc/list-full"), // Gunakan list-full agar semua PC dan Spec ikut termuat (termasuk legacy PIC string)
         axios.get("/api/agent/logs?limit=50"),
       ]);
       setVersions(vRes.data || []);
@@ -248,7 +248,29 @@ export default function AgentUpdateDashboard() {
                     <td className={tdClass}>{pc.picName ?? (typeof pc.pic === "object" ? pc.pic?.name : safeText(pc.pic))}</td>
                     <td className={tdClass}>{safeText(pc.agentVersion ?? pc.version)}</td>
                     <td className={tdClass}>{pc.spec?.ram != null ? `${pc.spec.ram}` : "-"}</td>
-                    <td className={tdClass}>{pc.spec?.storage ? `${pc.spec.storage?.size ?? "-"} ${pc.spec.storage?.type ?? ""}`.trim() : "-"}</td>
+                    <td className={tdClass}>{(() => {
+                      const diskArray = pc.spec?.disk || [];
+                      if (diskArray.length === 0) return "-";
+                      let groups = {};
+                      diskArray.forEach(d => {
+                        const type = (d.type && d.type !== "Unknown") ? d.type : "HD";
+                        const sizeBytes = d.totalBytes || (d.totalGB ? d.totalGB * 1024 * 1024 * 1024 : 0);
+                        if (sizeBytes) {
+                          if (!groups[type]) groups[type] = 0;
+                          groups[type] += sizeBytes;
+                        }
+                      });
+                      let formatted = [];
+                      for (const [type, sizeBytes] of Object.entries(groups)) {
+                          const marketedGB = Math.round(sizeBytes / 1000 / 1000 / 1000);
+                          if (marketedGB >= 1000) {
+                              formatted.push(`${Math.round(marketedGB / 1000)} TB ${type}`);
+                          } else {
+                              formatted.push(`${marketedGB} GB ${type}`);
+                          }
+                      }
+                      return formatted.length > 0 ? formatted.join(" + ") : "-";
+                    })()}</td>
                   </tr>
                 ))}
               </tbody>
