@@ -254,8 +254,20 @@ export default function AgentUpdateDashboard() {
                       let groups = {};
                       diskArray.forEach(d => {
                         const type = (d.type && d.type !== "Unknown") ? d.type : "HD";
-                        const sizeBytes = d.totalBytes || (d.totalGB ? d.totalGB * 1024 * 1024 * 1024 : 0);
-                        if (sizeBytes) {
+                        let sizeBytes = 0;
+                        if (d.totalBytes) {
+                          sizeBytes = d.totalBytes;
+                        } else if (d.totalGB) {
+                          sizeBytes = d.totalGB * 1024 * 1024 * 1024;
+                        } else if (d.total) {
+                          const match = d.total.match(/([\d.]+)\s*(GB|TB)/i);
+                          if (match) {
+                            const val = parseFloat(match[1]);
+                            const isTB = match[2].toUpperCase() === "TB";
+                            sizeBytes = val * (isTB ? 1024 * 1024 * 1024 * 1024 : 1024 * 1024 * 1024);
+                          }
+                        }
+                        if (sizeBytes > 0) {
                           if (!groups[type]) groups[type] = 0;
                           groups[type] += sizeBytes;
                         }
